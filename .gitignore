@@ -1,6 +1,7 @@
-node_modules
 .vscode
-.next
-package-lock.json
-/python_service/__pycache__
-setup
+*__pycache__
+.env
+/backend/venv
+
+# Tests
+tests/
