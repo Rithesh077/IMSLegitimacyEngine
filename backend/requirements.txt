@@ -1,0 +1,24 @@
+fastapi
+uvicorn
+pydantic
+requests
+beautifulsoup4
+python-dotenv
+
+# Advanced Scraping
+trafilatura
+fake_useragent
+lxml_html_clean
+
+# AI & NLP
+textblob
+google-generativeai
+transformers
+torch
+
+# Utilities
+fpdf2
+
+# Database
+sqlalchemy
+psycopg2-binary
