@@ -53,6 +53,21 @@ async def main():
     )
     print(f"Created Student: {student.email}")
 
+    # Create Admin
+    admin = await db.user.upsert(
+        where={"email": "admin@example.com"},
+        data={
+            "create": {
+                "name": "System Admin",
+                "email": "admin@example.com",
+                "password": password,
+                "role": Role.ADMIN
+            },
+            "update": {}
+        }
+    )
+    print(f"Created Admin: {admin.email}")
+
     await db.disconnect()
 
 if __name__ == "__main__":

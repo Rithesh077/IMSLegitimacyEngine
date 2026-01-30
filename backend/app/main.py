@@ -25,6 +25,9 @@ app.include_router(internships_router)
 app.include_router(approvals_router)
 app.include_router(departments_router)
 
+from app.admin.router import router as admin_router
+app.include_router(admin_router)
+
 # Mount Frontend
 try:
     app.mount("/ui", StaticFiles(directory="frontend-test", html=True), name="ui")
