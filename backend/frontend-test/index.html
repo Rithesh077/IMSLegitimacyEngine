@@ -305,6 +305,34 @@
             box.scrollTop = box.scrollHeight;
         }
 
+        // Auto-refresh interval
+        let refreshInterval = null;
+
+        function startAutoRefresh(tabId) {
+            if (refreshInterval) clearInterval(refreshInterval);
+
+            // Initial load
+            loadDataForTab(tabId);
+
+            // Poll every 5 seconds
+            refreshInterval = setInterval(() => {
+                loadDataForTab(tabId);
+            }, 5000);
+        }
+
+        function loadDataForTab(tabId) {
+            if (tabId === 'faculty' && tokens.faculty) loadSessions();
+            if (tabId === 'corporate') {
+                // Determine if we should update sessions (public) or internships (private)
+                // Corporate needs sessions to create post, so we might want to load sessions too if not loaded.
+                if (sessions.length === 0) apiRequest('/sessions', 'GET', null, 'faculty').then(d => { sessions = d; updateSessionDropdown(); }).catch(() => { });
+
+                if (tokens.corporate) loadMyInternships();
+            }
+            if (tabId === 'placement' && tokens.placement) loadPendingInternships();
+            if (tabId === 'student' && tokens.student) loadApprovedInternships();
+        }
+
         function switchTab(tabId) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -312,14 +340,7 @@
             document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
             document.getElementById(tabId).classList.add('active');
 
-            // Auto-refresh lists if logged in
-            if (tabId === 'faculty' && tokens.faculty) loadSessions();
-            if (tabId === 'corporate') {
-                updateSessionDropdown();
-                if (tokens.corporate) loadMyInternships();
-            }
-            if (tabId === 'placement' && tokens.placement) loadPendingInternships();
-            if (tabId === 'student' && tokens.student) loadApprovedInternships();
+            startAutoRefresh(tabId);
         }
 
         async function apiRequest(endpoint, method = 'GET', body = null, role = null) {
@@ -378,6 +399,14 @@
 
                 document.getElementById(prefix + '-actions').style.display = 'block';
                 if (role === 'placement') document.getElementById('place-actions').style.display = 'block';
+
+                // Start auto-refresh for this role immediately
+                // Determine current tab
+                const currentTab = document.querySelector('.tab.active').innerText.toLowerCase();
+                // Rudimentary check, simplified: only refresh if the logged in role matches the current active tab
+                if (currentTab.includes(role)) {
+                    loadDataForTab(role); // Use new helper functionality
+                }
 
             } catch (err) {
                 alert('Login Failed: ' + err.message);
