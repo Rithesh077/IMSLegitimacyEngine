@@ -291,7 +291,9 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:8000';
+        // Use the current origin (e.g., https://internshipportal-4iul.onrender.com)
+        // or localhost if running locally.
+        const API_URL = window.location.origin;
         const tokens = { faculty: null, corporate: null, placement: null, student: null };
 
         // Global Cache
