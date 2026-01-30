@@ -1,0 +1,29 @@
+SYSTEM WORKFLOW
+================
+
+1. FACULTY SETS THE STAGE
+-------------------------
+- Faculty logs in.
+- Creates an "Internship Session" (e.g., Summer 2024).
+- Outcome: A Session ID is generated. This defines the valid period/batch for internships.
+
+2. CORPORATE POSTS OPPORTUNITIES
+--------------------------------
+- Corporate Recruiter registers and logs in.
+- Creates an "Internship" posting.
+- MUST link this internship to a valid Session ID.
+- Status: PENDING (Not visible to students yet).
+
+3. PLACEMENT APPROVES
+---------------------
+- Placement Officer logs in.
+- Views list of PENDING internships.
+- Reviews and clicks APPROVE.
+- Status changes to: APPROVED.
+- System Action: Triggers Mock ERP/Viva synchronization log.
+
+4. STUDENTS APPLY
+-----------------
+- Student logs in.
+- Views the internship.
+- Can only see internships with status APPROVED.

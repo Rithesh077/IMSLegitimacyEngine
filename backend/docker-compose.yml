@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Use the service name 'db' as the hostname
+      - DATABASE_URL=postgresql://user:password@db:5432/ims_db
+      - SECRET_KEY=supersecretkey
+    depends_on:
+      - db
+    volumes:
+      # Optional: Mount code for development (remove in production)
+      - ./app:/app/app
+      - ./frontend-test:/app/frontend-test
+    command: bash -c "prisma db push && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ims_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

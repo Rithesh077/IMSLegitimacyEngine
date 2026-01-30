@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMS Verification Dashboard</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f2f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .tab.active {
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Forms & Lists */
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .section h3 {
+            margin-top: 0;
+            color: #444;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        input,
+        select,
+        button {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button.secondary {
+            background-color: #6c757d;
+        }
+
+        button.success {
+            background-color: #28a745;
+        }
+
+        button.danger {
+            background-color: #dc3545;
+        }
+
+        .item-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        .item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #007bff;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .item small {
+            color: #888;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            color: white;
+            background: #999;
+        }
+
+        .status-APPROVED {
+            background: #28a745;
+        }
+
+        .status-PENDING {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .status-REJECTED {
+            background: #dc3545;
+        }
+
+        .log-box {
+            background: #333;
+            color: #0f0;
+            padding: 10px;
+            font-family: monospace;
+            height: 150px;
+            overflow-y: scroll;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .flex-row>* {
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>IMS Verification Dashboard</h1>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('faculty')">1. Faculty (Session)</div>
+            <div class="tab" onclick="switchTab('corporate')">2. Corporate (Post)</div>
+            <div class="tab" onclick="switchTab('placement')">3. Placement (Approve)</div>
+            <div class="tab" onclick="switchTab('student')">4. Student (View)</div>
+        </div>
+
+        <!-- FACULTY -->
+        <div id="faculty" class="tab-content active">
+            <div class="section">
+                <h3>Login (Faculty)</h3>
+                <div class="flex-row">
+                    <input type="text" id="fac-email" value="faculty@example.com" placeholder="Email">
+                    <input type="password" id="fac-pass" value="password123" placeholder="Password">
+                </div>
+                <button onclick="login('faculty')">Login as Faculty</button>
+                <p id="fac-token-status">Not logged in</p>
+            </div>
+
+            <div class="section" id="fac-actions" style="display:none;">
+                <h3>Create Session</h3>
+                <input type="text" id="sess-program" placeholder="Program (e.g. B.Tech)" value="B.Tech">
+                <input type="text" id="sess-batch" placeholder="Batch (e.g. 2024)" value="2024">
+                <input type="text" id="sess-acad" placeholder="Academic Year" value="2023-24">
+                <input type="date" id="sess-start" value="2024-01-01">
+                <input type="date" id="sess-end" value="2024-06-01">
+                <button onclick="createSession()">Create Session</button>
+
+                <h3>Active Sessions</h3>
+                <button class="secondary" onclick="loadSessions()">Refresh List</button>
+                <div id="fac-session-list" class="item-list"></div>
+            </div>
+        </div>
+
+        <!-- CORPORATE -->
+        <div id="corporate" class="tab-content">
+            <div class="section">
+                <h3>Register / Login</h3>
+                <div class="flex-row">
+                    <input type="text" id="corp-email" value="corp@example.com" placeholder="Email">
+                    <input type="password" id="corp-pass" value="password123" placeholder="Password">
+                </div>
+                <div class="flex-row">
+                    <button class="secondary" onclick="registerCorp()">Register New Corp</button>
+                    <button onclick="login('corporate')">Login</button>
+                </div>
+                <p id="corp-token-status">Not logged in</p>
+            </div>
+
+            <div class="section" id="corp-actions" style="display:none;">
+                <h3>Post Internship</h3>
+                <input type="text" id="int-title" placeholder="Title (e.g. Python Dev)" value="Python Dev">
+                <input type="text" id="int-desc" placeholder="Description" value="Remote internship">
+                <select id="int-session-select">
+                    <option value="">-- Select Session --</option>
+                </select>
+                <small>(Refresh sessions in Faculty tab if empty)</small>
+                <button onclick="createInternship()">Post Internship</button>
+
+                <h3>My Postings</h3>
+                <button class="secondary" onclick="loadMyInternships()">Refresh List</button>
+                <div id="corp-int-list" class="item-list"></div>
+            </div>
+        </div>
+
+        <!-- PLACEMENT -->
+        <div id="placement" class="tab-content">
+            <div class="section">
+                <h3>Login (Placement)</h3>
+                <div class="flex-row">
+                    <input type="text" id="place-email" value="placement@example.com" placeholder="Email">
+                    <input type="password" id="place-pass" value="password123" placeholder="Password">
+                </div>
+                <button onclick="login('placement')">Login</button>
+                <p id="place-token-status">Not logged in</p>
+            </div>
+
+            <div class="section" id="place-actions" style="display:none;">
+                <h3>Pending Internships</h3>
+                <button class="secondary" onclick="loadPendingInternships()">Refresh List</button>
+                <div id="place-int-list" class="item-list"></div>
+            </div>
+        </div>
+
+        <!-- STUDENT -->
+        <div id="student" class="tab-content">
+            <div class="section">
+                <h3>Login (Student)</h3>
+                <div class="flex-row">
+                    <input type="text" id="stud-email" value="student@example.com" placeholder="Email">
+                    <input type="password" id="stud-pass" value="password123" placeholder="Password">
+                </div>
+                <button onclick="login('student')">Login</button>
+                <p id="stud-token-status">Not logged in</p>
+            </div>
+
+            <div class="section" id="stud-actions" style="display:none;">
+                <h3>Approved Opportunities</h3>
+                <button class="secondary" onclick="loadApprovedInternships()">Refresh List</button>
+                <div id="stud-int-list" class="item-list"></div>
+            </div>
+        </div>
+
+        <div class="log-box" id="log-box">System Logs...</div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        const tokens = { faculty: null, corporate: null, placement: null, student: null };
+
+        // Global Cache
+        let sessions = [];
+
+        function log(msg) {
+            const box = document.getElementById('log-box');
+            box.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+
+            // Auto-refresh lists if logged in
+            if (tabId === 'faculty' && tokens.faculty) loadSessions();
+            if (tabId === 'corporate') {
+                updateSessionDropdown();
+                if (tokens.corporate) loadMyInternships();
+            }
+            if (tabId === 'placement' && tokens.placement) loadPendingInternships();
+            if (tabId === 'student' && tokens.student) loadApprovedInternships();
+        }
+
+        async function apiRequest(endpoint, method = 'GET', body = null, role = null) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (role && tokens[role]) {
+                headers['Authorization'] = `Bearer ${tokens[role]}`;
+            }
+
+            try {
+                const res = await fetch(API_URL + endpoint, {
+                    method,
+                    headers,
+                    body: body ? JSON.stringify(body) : null
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Request failed');
+                return data;
+            } catch (err) {
+                log(`ERROR (${endpoint}): ${err.message}`);
+                alert(err.message);
+                throw err;
+            }
+        }
+
+        // AUTH
+        async function login(role) {
+            let prefix = role.substring(0, 4);
+            if (role === 'faculty') prefix = 'fac';
+            if (role === 'placement') prefix = 'place';
+
+            const emailId = prefix + '-email';
+            const passId = prefix + '-pass';
+
+            const email = document.getElementById(emailId).value;
+            const password = document.getElementById(passId).value;
+
+            const formData = new URLSearchParams();
+            formData.append('username', email);
+            formData.append('password', password);
+
+            try {
+                const res = await fetch(API_URL + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail);
+
+                tokens[role] = data.access_token;
+                log(`${role.toUpperCase()} Logged In.`);
+
+                // Update UI
+                document.getElementById(prefix + '-token-status').innerText = 'Logged In (Token Active)';
+                if (role === 'placement') document.getElementById('place-token-status').innerText = 'Logged In';
+
+                document.getElementById(prefix + '-actions').style.display = 'block';
+                if (role === 'placement') document.getElementById('place-actions').style.display = 'block';
+
+            } catch (err) {
+                alert('Login Failed: ' + err.message);
+            }
+        }
+
+        async function registerCorp() {
+            const data = {
+                name: "Test Corp",
+                email: document.getElementById('corp-email').value,
+                password: document.getElementById('corp-pass').value,
+                company_name: "Test Company Inc",
+                hr_name: "HR Manager"
+            };
+            try {
+                await apiRequest('/auth/register', 'POST', data);
+                log('Corporate Registered. You can now Login.');
+            } catch (e) { }
+        }
+
+        // FACULTY
+        async function createSession() {
+            const data = {
+                program: document.getElementById('sess-program').value,
+                batch: document.getElementById('sess-batch').value,
+                academic_year: document.getElementById('sess-acad').value,
+                start_date: document.getElementById('sess-start').value,
+                end_date: document.getElementById('sess-end').value
+            };
+            await apiRequest('/sessions', 'POST', data, 'faculty');
+            log('Session Created');
+            loadSessions();
+        }
+
+        async function loadSessions() {
+            sessions = await apiRequest('/sessions', 'GET', null, 'faculty');
+            const list = document.getElementById('fac-session-list');
+            list.innerHTML = sessions.map(s => `
+            <div class="item">
+                <b>${s.program} (${s.batch})</b><br>
+                <small>${s.academic_year} | ID: ${s.id}</small>
+            </div>
+        `).join('');
+            updateSessionDropdown();
+        }
+
+        function updateSessionDropdown() {
+            const sel = document.getElementById('int-session-select');
+            sel.innerHTML = '<option value="">-- Select Session --</option>' +
+                sessions.map(s => `<option value="${s.id}">${s.program} - ${s.batch}</option>`).join('');
+        }
+
+        // CORPORATE
+        async function createInternship() {
+            const data = {
+                title: document.getElementById('int-title').value,
+                description: document.getElementById('int-desc').value,
+                session_id: document.getElementById('int-session-select').value
+            };
+            if (!data.session_id) return alert('Select a Session first!');
+
+            await apiRequest('/internships', 'POST', data, 'corporate');
+            log('Internship Posted (Status: PENDING)');
+            loadMyInternships();
+        }
+
+        async function loadMyInternships() {
+            const items = await apiRequest('/internships/my', 'GET', null, 'corporate');
+            document.getElementById('corp-int-list').innerHTML = items.map(renderInternship).join('');
+        }
+
+        // PLACEMENT
+        async function loadPendingInternships() {
+            const items = await apiRequest('/internships/pending', 'GET', null, 'placement');
+            document.getElementById('place-int-list').innerHTML = items.map(i => `
+            <div class="item">
+                ${renderInternshipContent(i)}
+                <div style="margin-top:10px;">
+                    <button class="success" onclick="approveInt('${i.id}')">Approve (Sync ERP)</button>
+                    <button class="danger" onclick="rejectInt('${i.id}')">Reject</button>
+                </div>
+            </div>
+        `).join('');
+        }
+
+        async function approveInt(id) {
+            await apiRequest(`/internships/${id}/approve`, 'POST', null, 'placement');
+            log(`Internship ${id} APPROVED & Synced to ERP.`);
+            loadPendingInternships();
+        }
+
+        async function rejectInt(id) {
+            await apiRequest(`/internships/${id}/reject`, 'POST', null, 'placement');
+            log(`Internship ${id} REJECTED.`);
+            loadPendingInternships();
+        }
+
+        // STUDENT
+        async function loadApprovedInternships() {
+            const items = await apiRequest('/internships/approved', 'GET', null, 'student');
+            document.getElementById('stud-int-list').innerHTML = items.map(renderInternship).join('');
+        }
+
+        // Helpers
+        function renderInternship(i) {
+            return `<div class="item">${renderInternshipContent(i)}</div>`;
+        }
+
+        function renderInternshipContent(i) {
+            return `
+            <b>${i.title}</b> <span class="status-badge status-${i.status}">${i.status}</span><br>
+            <small>ID: ${i.id}</small>
+            <p>${i.description}</p>
+        `;
+        }
+
+    </script>
+
+</body>
+
+</html>
