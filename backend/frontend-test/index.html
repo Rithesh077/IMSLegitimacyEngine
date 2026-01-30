@@ -4,343 +4,729 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IMS Verification Dashboard</title>
+    <title>Internship Management Portal</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg-body: #f3f4f6;
+            --bg-sidebar: #1e293b;
+            --text-sidebar: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --sidebar-width: 260px;
+        }
+
         body {
-            font-family: sans-serif;
+            font-family: 'Inter', sans-serif;
             margin: 0;
-            padding: 20px;
-            background: #f0f2f5;
+            padding: 0;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-
-        /* Tabs */
-        .tabs {
+        .app-container {
             display: flex;
-            border-bottom: 2px solid #ddd;
-            margin-bottom: 20px;
+            height: 100%;
         }
 
-        .tab {
-            padding: 10px 20px;
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-sidebar);
+            color: var(--text-sidebar);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            justify-content: space-between;
+        }
+
+        .sidebar-header {
+            flex: 0;
+        }
+
+        .nav-items {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid #334155;
+        }
+
+        .sidebar h2 {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-items {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-item {
+            padding: 12px 16px;
+            border-radius: 8px;
             cursor: pointer;
-            font-weight: bold;
-            color: #666;
+            transition: background 0.2s, color 0.2s;
+            color: #cbd5e1;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .tab.active {
-            color: #007bff;
-            border-bottom: 2px solid #007bff;
+        .nav-item:hover,
+        .nav-item.active {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
         }
 
-        .tab-content {
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            position: relative;
+        }
+
+        .view-section {
             display: none;
+            max-width: 1000px;
+            margin: 0 auto;
+            animation: fadeIn 0.4s ease;
         }
 
-        .tab-content.active {
+        .view-section.active {
             display: block;
-            animation: fadeIn 0.3s;
         }
 
         @keyframes fadeIn {
             from {
                 opacity: 0;
+                transform: translateY(10px);
             }
 
             to {
                 opacity: 1;
+                transform: translateY(0);
             }
         }
 
-        /* Forms & Lists */
-        .section {
-            margin-bottom: 30px;
-            border: 1px solid #eee;
-            padding: 15px;
-            border-radius: 4px;
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
         }
 
-        .section h3 {
+        .card h3 {
             margin-top: 0;
-            color: #444;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
+            font-size: 1.25rem;
+            color: var(--text-main);
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
         }
 
-        input,
+        /* Forms */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+
+        input[type="text"],
+        input[type="password"],
         select,
-        button {
-            padding: 8px;
-            margin: 5px 0;
+        textarea {
             width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
             box-sizing: border-box;
         }
 
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
         button {
-            background-color: #007bff;
-            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
             border: none;
+            font-weight: 600;
             cursor: pointer;
-            font-weight: bold;
+            transition: all 0.2s;
+            font-size: 0.95rem;
         }
 
-        button:hover {
-            background-color: #0056b3;
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
         }
 
-        button.secondary {
-            background-color: #6c757d;
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
         }
 
-        button.success {
-            background-color: #28a745;
+        .btn-secondary {
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
         }
 
-        button.danger {
-            background-color: #dc3545;
+        .btn-secondary:hover {
+            background-color: #f8fafc;
+            border-color: #cbd5e1;
         }
 
-        .item-list {
-            max-height: 300px;
-            overflow-y: auto;
-            background: #f9f9f9;
-            padding: 10px;
-            border: 1px solid #ddd;
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
         }
 
-        .item {
-            background: white;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-left: 4px solid #007bff;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        .btn-danger:hover {
+            background-color: #dc2626;
         }
 
-        .item small {
-            color: #888;
-            display: block;
-            margin-bottom: 5px;
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #16a34a;
+        }
+
+        /* Internship Items */
+        .internship-item {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: transform 0.2s;
+        }
+
+        .internship-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .item-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
         }
 
         .status-badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            color: white;
-            background: #999;
-        }
-
-        .status-APPROVED {
-            background: #28a745;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
         }
 
         .status-PENDING {
-            background: #ffc107;
-            color: #333;
+            background-color: #fef3c7;
+            color: #b45309;
+        }
+
+        .status-APPROVED {
+            background-color: #dcfce7;
+            color: #15803d;
         }
 
         .status-REJECTED {
-            background: #dc3545;
+            background-color: #fee2e2;
+            color: #b91c1c;
         }
 
-        .log-box {
-            background: #333;
-            color: #0f0;
-            padding: 10px;
-            font-family: monospace;
-            height: 150px;
-            overflow-y: scroll;
-            margin-top: 20px;
-            border-radius: 4px;
+        .item-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
         }
 
-        .flex-row {
+        .item-row {
             display: flex;
-            gap: 10px;
+            align-items: center;
+            gap: 6px;
         }
 
-        .flex-row>* {
-            flex: 1;
+        .item-desc {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--text-main);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: color 0.2s;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: var(--text-main);
         }
     </style>
 </head>
 
 <body>
 
-    <div class="container">
-        <h1>IMS Verification Dashboard</h1>
-
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('faculty')">1. Faculty (Session)</div>
-            <div class="tab" onclick="switchTab('corporate')">2. Corporate (Post)</div>
-            <div class="tab" onclick="switchTab('placement')">3. Placement (Approve)</div>
-            <div class="tab" onclick="switchTab('student')">4. Student (View)</div>
-        </div>
-
-        <!-- FACULTY -->
-        <div id="faculty" class="tab-content active">
-            <div class="section">
-                <h3>Login (Faculty)</h3>
-                <div class="flex-row">
-                    <input type="text" id="fac-email" value="faculty@example.com" placeholder="Email">
-                    <input type="password" id="fac-pass" value="password123" placeholder="Password">
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>IMS Portal</h2>
+                <div class="nav-items">
+                    <div class="nav-item active" onclick="switchView('corporate')" id="nav-corporate">
+                        <span>Corporate</span>
+                    </div>
+                    <div class="nav-item" onclick="switchView('placement')" id="nav-placement">
+                        <span>Placement</span>
+                    </div>
+                    <div class="nav-item" onclick="switchView('student')" id="nav-student">
+                        <span>Student</span>
+                    </div>
                 </div>
-                <button onclick="login('faculty')">Login as Faculty</button>
-                <p id="fac-token-status">Not logged in</p>
             </div>
 
-            <div class="section" id="fac-actions" style="display:none;">
-                <h3>Create Session</h3>
-                <input type="text" id="sess-program" placeholder="Program (e.g. B.Tech)" value="B.Tech">
-                <input type="text" id="sess-batch" placeholder="Batch (e.g. 2024)" value="2024">
-                <input type="text" id="sess-acad" placeholder="Academic Year" value="2023-24">
-                <input type="date" id="sess-start" value="2024-01-01">
-                <input type="date" id="sess-end" value="2024-06-01">
-                <button onclick="createSession()">Create Session</button>
+            <div class="sidebar-footer hidden" id="global-logout-area">
+                <button class="btn-danger" style="width:100%" onclick="logoutCurrent()">Logout</button>
+            </div>
+        </aside>
 
-                <h3>Active Sessions</h3>
-                <button class="secondary" onclick="loadSessions()">Refresh List</button>
-                <div id="fac-session-list" class="item-list"></div>
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- CORPORATE VIEW -->
+            <div id="corporate-view" class="view-section active">
+
+                <!-- Login Section -->
+                <div id="corp-login-section" class="card">
+                    <h3>Corporate Access</h3>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="text" id="corp-email" value="corp@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="corp-pass" value="password123">
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-primary" onclick="login('corporate')">Login</button>
+                        <button class="btn-secondary" onclick="registerCorp()">Register New Corp</button>
+                    </div>
+                </div>
+
+                <!-- Dashboard Actions -->
+                <div id="corp-actions" class="hidden">
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h3 style="margin:0; border:none;">Manage Internships</h3>
+                            <button class="btn-primary" onclick="openAddModal()">➕ Add Internship</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h3 style="margin:0; border:none;">My Listings</h3>
+                            <button class="btn-secondary" onclick="loadMyInternships()">Refresh</button>
+                        </div>
+                        <div id="corp-int-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PLACEMENT VIEW -->
+            <div id="placement-view" class="view-section">
+                <div id="place-login-section" class="card">
+                    <h3>Placement Cell Access</h3>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="text" id="place-email" value="placement@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="place-pass" value="password123">
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-primary" onclick="login('placement')">Login</button>
+                    </div>
+                </div>
+
+                <div id="place-actions" class="hidden">
+                    <div class="card">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h3 style="margin:0; border:none;">Pending Approvals</h3>
+                            <button class="btn-secondary" onclick="loadPendingInternships()">Refresh</button>
+                        </div>
+                        <div id="place-int-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STUDENT VIEW -->
+            <div id="student-view" class="view-section">
+                <div id="stud-login-section" class="card">
+                    <h3>Student Portal</h3>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="text" id="stud-email" value="student@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="stud-pass" value="password123">
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-primary" onclick="login('student')">Login</button>
+                    </div>
+                </div>
+
+                <div id="stud-actions" class="hidden">
+                    <div class="card">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h3 style="margin:0; border:none;">Available Opportunities</h3>
+                            <button class="btn-secondary" onclick="loadApprovedInternships()">Refresh</button>
+                        </div>
+                        <div id="stud-int-list"></div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit Internship</h3>
+                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="edit-title">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label>Department</label>
+                    <select id="edit-dept"></select>
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <select id="edit-location">
+                        <option value="REMOTE">Remote</option>
+                        <option value="ONSITE">Onsite</option>
+                        <option value="HYBRID">Hybrid</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label>Duration</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <input type="number" id="edit-duration" placeholder="e.g. 6" min="1">
+                        <select id="edit-duration-unit">
+                            <option value="Days">Days</option>
+                            <option value="Months" selected>Months</option>
+                            <option value="Years">Years</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Stipend details</label>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="edit-paid" onchange="toggleEditStipend()">
+                        <label for="edit-paid" style="margin:0; cursor:pointer;">Top-tier Paid Internship?</label>
+                    </div>
+                    <input type="text" id="edit-stipend" placeholder="Amount (e.g. ₹25,000/mo)" class="hidden">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="edit-desc" rows="4"></textarea>
+            </div>
+            <div class="btn-group">
+                <button class="btn-primary" onclick="saveEdit()">Update Internship</button>
+                <button class="btn-secondary" onclick="closeEditModal()">Cancel</button>
             </div>
         </div>
+    </div>
 
-        <!-- CORPORATE -->
-        <div id="corporate" class="tab-content">
-            <div class="section">
-                <h3>Register / Login</h3>
-                <div class="flex-row">
-                    <input type="text" id="corp-email" value="corp@example.com" placeholder="Email">
-                    <input type="password" id="corp-pass" value="password123" placeholder="Password">
-                </div>
-                <div class="flex-row">
-                    <button class="secondary" onclick="registerCorp()">Register New Corp</button>
-                    <button onclick="login('corporate')">Login</button>
-                </div>
-                <p id="corp-token-status">Not logged in</p>
+    <!-- Add Internship Modal -->
+    <div id="add-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>➕ Add New Internship</h3>
+                <button class="modal-close" onclick="closeAddModal()">&times;</button>
             </div>
-
-            <div class="section" id="corp-actions" style="display:none;">
-                <h3>Post Internship</h3>
-                <input type="text" id="int-title" placeholder="Title (e.g. Python Dev)" value="Python Dev">
-                <input type="text" id="int-desc" placeholder="Description" value="Remote internship">
-                <select id="int-session-select">
-                    <option value="">-- Select Session --</option>
-                </select>
-                <small>(Refresh sessions in Faculty tab if empty)</small>
-                <button onclick="createInternship()">Post Internship</button>
-
-                <h3>My Postings</h3>
-                <button class="secondary" onclick="loadMyInternships()">Refresh List</button>
-                <div id="corp-int-list" class="item-list"></div>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="add-title" placeholder="e.g. Senior Python Developer">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label>Department</label>
+                    <select id="add-dept"></select>
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <select id="add-location">
+                        <option value="REMOTE">Remote</option>
+                        <option value="ONSITE">Onsite</option>
+                        <option value="HYBRID">Hybrid</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label>Duration</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <input type="number" id="add-duration" placeholder="e.g. 6" min="1">
+                        <select id="add-duration-unit">
+                            <option value="Days">Days</option>
+                            <option value="Months" selected>Months</option>
+                            <option value="Years">Years</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Stipend details</label>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="add-paid" onchange="toggleAddStipend()">
+                        <label for="add-paid" style="margin:0; cursor:pointer;">Top-tier Paid Internship?</label>
+                    </div>
+                    <input type="text" id="add-stipend" placeholder="Amount (e.g. ₹25,000/mo)" class="hidden">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="add-desc" rows="4" placeholder="Job details..."></textarea>
+            </div>
+            <div class="btn-group">
+                <button class="btn-primary" onclick="saveAdd()">Post Internship</button>
+                <button class="btn-secondary" onclick="closeAddModal()">Cancel</button>
             </div>
         </div>
-
-        <!-- PLACEMENT -->
-        <div id="placement" class="tab-content">
-            <div class="section">
-                <h3>Login (Placement)</h3>
-                <div class="flex-row">
-                    <input type="text" id="place-email" value="placement@example.com" placeholder="Email">
-                    <input type="password" id="place-pass" value="password123" placeholder="Password">
-                </div>
-                <button onclick="login('placement')">Login</button>
-                <p id="place-token-status">Not logged in</p>
-            </div>
-
-            <div class="section" id="place-actions" style="display:none;">
-                <h3>Pending Internships</h3>
-                <button class="secondary" onclick="loadPendingInternships()">Refresh List</button>
-                <div id="place-int-list" class="item-list"></div>
-            </div>
-        </div>
-
-        <!-- STUDENT -->
-        <div id="student" class="tab-content">
-            <div class="section">
-                <h3>Login (Student)</h3>
-                <div class="flex-row">
-                    <input type="text" id="stud-email" value="student@example.com" placeholder="Email">
-                    <input type="password" id="stud-pass" value="password123" placeholder="Password">
-                </div>
-                <button onclick="login('student')">Login</button>
-                <p id="stud-token-status">Not logged in</p>
-            </div>
-
-            <div class="section" id="stud-actions" style="display:none;">
-                <h3>Approved Opportunities</h3>
-                <button class="secondary" onclick="loadApprovedInternships()">Refresh List</button>
-                <div id="stud-int-list" class="item-list"></div>
-            </div>
-        </div>
-
-        <div class="log-box" id="log-box">System Logs...</div>
     </div>
 
     <script>
-        // Use the current origin (e.g., https://internshipportal-4iul.onrender.com)
-        // or localhost if running locally.
-        const API_URL = window.location.origin;
-        const tokens = { faculty: null, corporate: null, placement: null, student: null };
+        const API_URL = 'http://localhost:8000';
+        let tokens = {
+            corporate: localStorage.getItem('token_corporate'),
+            placement: localStorage.getItem('token_placement'),
+            student: localStorage.getItem('token_student'),
+            faculty: localStorage.getItem('token_faculty')
+        };
 
-        // Global Cache
-        let sessions = [];
+        let departments = [];
+        let departmentsLoaded = false;
+        let myInternships = [];
+        let editingInternshipId = null;
+        let autoRefreshInterval = null;
 
         function log(msg) {
-            const box = document.getElementById('log-box');
-            box.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
-            box.scrollTop = box.scrollHeight;
+            const time = new Date().toLocaleTimeString();
+            console.log(`[${time}] ${msg}`);
         }
 
-        // Auto-refresh interval
-        let refreshInterval = null;
+        function switchView(viewName) {
+            // Update Nav
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`nav-${viewName}`).classList.add('active');
 
-        function startAutoRefresh(tabId) {
-            if (refreshInterval) clearInterval(refreshInterval);
+            // Update View
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`${viewName}-view`).classList.add('active');
 
-            // Initial load
-            loadDataForTab(tabId);
-
-            // Poll every 5 seconds
-            refreshInterval = setInterval(() => {
-                loadDataForTab(tabId);
-            }, 5000);
+            // Trigger Data Load
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            loadDataForView(viewName);
+            autoRefreshInterval = setInterval(() => loadDataForView(viewName), 5000);
         }
 
-        function loadDataForTab(tabId) {
-            if (tabId === 'faculty' && tokens.faculty) loadSessions();
-            if (tabId === 'corporate') {
-                // Determine if we should update sessions (public) or internships (private)
-                // Corporate needs sessions to create post, so we might want to load sessions too if not loaded.
-                if (sessions.length === 0) apiRequest('/sessions', 'GET', null, 'faculty').then(d => { sessions = d; updateSessionDropdown(); }).catch(() => { });
-
+        function loadDataForView(viewName) {
+            if (viewName === 'corporate') {
+                loadDepartments('corporate');
                 if (tokens.corporate) loadMyInternships();
             }
-            if (tabId === 'placement' && tokens.placement) loadPendingInternships();
-            if (tabId === 'student' && tokens.student) loadApprovedInternships();
+            if (viewName === 'placement' && tokens.placement) loadPendingInternships();
+            if (viewName === 'student' && tokens.student) loadApprovedInternships();
         }
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        async function loadDepartments(role) {
+            if (departmentsLoaded) return;
 
-            document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
-            document.getElementById(tabId).classList.add('active');
+            // Only fetch if we have a token for the current role
+            let effectiveRole = role;
+            if (!tokens[effectiveRole]) {
+                if (tokens.corporate) effectiveRole = 'corporate';
+                else if (tokens.placement) effectiveRole = 'placement';
+                else if (tokens.student) effectiveRole = 'student';
+                else return; // No token, cannot fetch
+            }
 
-            startAutoRefresh(tabId);
+            try {
+                const data = await apiRequest('/departments', 'GET', null, effectiveRole);
+                if (Array.isArray(data)) {
+                    departments = data;
+                    departmentsLoaded = true;
+                    const options = data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+
+                    // Populate all dropdowns
+                    const addSelect = document.getElementById('add-dept');
+                    if (addSelect) addSelect.innerHTML = options;
+
+                    const editSelect = document.getElementById('edit-dept');
+                    if (editSelect) editSelect.innerHTML = options;
+                }
+            } catch (e) {
+                console.error("Failed to load departments", e);
+            }
+        }
+
+        function toggleStipend() {
+            const isPaid = document.getElementById('int-paid').checked;
+            const stipendInput = document.getElementById('int-stipend');
+            if (isPaid) stipendInput.classList.remove('hidden');
+            else stipendInput.classList.add('hidden');
         }
 
         async function apiRequest(endpoint, method = 'GET', body = null, role = null) {
@@ -349,34 +735,142 @@
                 headers['Authorization'] = `Bearer ${tokens[role]}`;
             }
 
+            const opts = {
+                method,
+                headers,
+                body: body ? JSON.stringify(body) : null
+            };
+
             try {
-                const res = await fetch(API_URL + endpoint, {
-                    method,
-                    headers,
-                    body: body ? JSON.stringify(body) : null
-                });
+                const res = await fetch(`${API_URL}${endpoint}`, opts);
+
+                if (res.status === 401) {
+                    // Authentication failed - auto logout
+                    console.error('Authentication failed - logging out');
+
+                    // Determine which role failed and logout
+                    if (role) {
+                        handleLogout(role);
+                        alert('Your session has expired. Please login again.');
+                    } else {
+                        // Clear all tokens if role is unknown
+                        tokens.corporate = null;
+                        tokens.placement = null;
+                        tokens.student = null;
+                        switchView('corporate'); // Go to login page
+                        alert('Authentication failed. Please login.');
+                    }
+
+                    throw new Error('Session expired');
+                }
+
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || 'Request failed');
+                if (!res.ok) {
+                    let errMsg = 'Request failed';
+                    if (data.detail) {
+                        if (typeof data.detail === 'string') errMsg = data.detail;
+                        else if (Array.isArray(data.detail)) errMsg = data.detail.map(e => `${e.loc.join('.')}: ${e.msg}`).join('\n');
+                        else errMsg = JSON.stringify(data.detail);
+                    }
+                    throw new Error(errMsg);
+                }
                 return data;
             } catch (err) {
-                log(`ERROR (${endpoint}): ${err.message}`);
-                alert(err.message);
+                if (err.message !== 'Session expired') {
+                    log(`ERROR: ${err.message}`);
+                    alert(err.message);
+                }
                 throw err;
             }
         }
 
-        // AUTH
+        function handleLogout(role) {
+            tokens[role] = null;
+            localStorage.removeItem(`token_${role}`);
+
+            // Show Login, Hide Actions
+            let prefix = role === 'placement' ? 'place' : role.substring(0, 4);
+            if (role === 'corporate') prefix = 'corp';
+            if (role === 'student') prefix = 'stud';
+
+            const loginSec = document.getElementById(`${prefix}-login-section`);
+            const actionSec = document.getElementById(`${prefix}-actions`);
+
+            if (loginSec) loginSec.classList.remove('hidden');
+
+            if (actionSec) actionSec.classList.add('hidden');
+
+            log(`${role.toUpperCase()} Logged Out/Expired.`);
+
+            // Restore Sidebar - show all nav items
+            document.getElementById('nav-corporate').classList.remove('hidden');
+            document.getElementById('nav-placement').classList.remove('hidden');
+            document.getElementById('nav-student').classList.remove('hidden');
+
+            // Hide logout button
+            document.getElementById('global-logout-area').classList.add('hidden');
+
+            // Switch to the login view for this role
+            switchView(role);
+        }
+
+        function handleLoginSuccess(role, token) {
+            tokens[role] = token;
+            localStorage.setItem(`token_${role}`, token);
+            log(`${role.toUpperCase()} Logged In.`);
+
+            let prefix = role === 'placement' ? 'place' : role.substring(0, 4);
+            if (role === 'corporate') prefix = 'corp';
+            if (role === 'student') prefix = 'stud';
+
+            // Hide Login, Show Actions
+            document.getElementById(`${prefix}-login-section`).classList.add('hidden');
+            document.getElementById(`${prefix}-actions`).classList.remove('hidden');
+
+            // ISOLATE VIEW
+            isolateSidebar(role);
+            switchView(role); // Switch to the logged-in role's view
+
+            loadDataForView(role);
+        }
+
+        function isolateSidebar(role) {
+            // FIRST: Ensure the active role's nav item is visible
+            document.getElementById(`nav-${role}`).classList.remove('hidden');
+
+            // THEN: Hide other nav items
+            if (role === 'corporate') {
+                document.getElementById('nav-placement').classList.add('hidden');
+                document.getElementById('nav-student').classList.add('hidden');
+            } else if (role === 'placement') {
+                document.getElementById('nav-corporate').classList.add('hidden');
+                document.getElementById('nav-student').classList.add('hidden');
+            } else if (role === 'student') {
+                document.getElementById('nav-corporate').classList.add('hidden');
+                document.getElementById('nav-placement').classList.add('hidden');
+            }
+
+            // Show Logout
+            const logoutArea = document.getElementById('global-logout-area');
+            if (logoutArea) {
+                logoutArea.classList.remove('hidden');
+                logoutArea.querySelector('button').innerText = `Logout ${role.charAt(0).toUpperCase() + role.slice(1)}`;
+            }
+        }
+
+        function logoutCurrent() {
+            if (tokens.corporate) handleLogout('corporate');
+            if (tokens.placement) handleLogout('placement');
+            if (tokens.student) handleLogout('student');
+        }
+
         async function login(role) {
-            let prefix = role.substring(0, 4);
-            if (role === 'faculty') prefix = 'fac';
-            if (role === 'placement') prefix = 'place';
+            let prefix = role === 'placement' ? 'place' : role.substring(0, 4);
+            if (role === 'corporate') prefix = 'corp';
+            if (role === 'student') prefix = 'stud';
 
-            const emailId = prefix + '-email';
-            const passId = prefix + '-pass';
-
-            const email = document.getElementById(emailId).value;
-            const password = document.getElementById(passId).value;
-
+            const email = document.getElementById(`${prefix}-email`).value;
+            const password = document.getElementById(`${prefix}-pass`).value;
             const formData = new URLSearchParams();
             formData.append('username', email);
             formData.append('password', password);
@@ -390,27 +884,8 @@
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail);
 
-                tokens[role] = data.access_token;
-                log(`${role.toUpperCase()} Logged In.`);
-
-                // Update UI
-                document.getElementById(prefix + '-token-status').innerText = 'Logged In (Token Active)';
-                if (role === 'placement') document.getElementById('place-token-status').innerText = 'Logged In';
-
-                document.getElementById(prefix + '-actions').style.display = 'block';
-                if (role === 'placement') document.getElementById('place-actions').style.display = 'block';
-
-                // Start auto-refresh for this role immediately
-                // Determine current tab
-                const currentTab = document.querySelector('.tab.active').innerText.toLowerCase();
-                // Rudimentary check, simplified: only refresh if the logged in role matches the current active tab
-                if (currentTab.includes(role)) {
-                    loadDataForTab(role); // Use new helper functionality
-                }
-
-            } catch (err) {
-                alert('Login Failed: ' + err.message);
-            }
+                handleLoginSuccess(role, data.access_token);
+            } catch (err) { alert('Login Failed: ' + err.message); }
         }
 
         async function registerCorp() {
@@ -423,70 +898,208 @@
             };
             try {
                 await apiRequest('/auth/register', 'POST', data);
-                log('Corporate Registered. You can now Login.');
+                log('Corporate Registered. Please Login.');
             } catch (e) { }
         }
 
-        // FACULTY
-        async function createSession() {
-            const data = {
-                program: document.getElementById('sess-program').value,
-                batch: document.getElementById('sess-batch').value,
-                academic_year: document.getElementById('sess-acad').value,
-                start_date: document.getElementById('sess-start').value,
-                end_date: document.getElementById('sess-end').value
-            };
-            await apiRequest('/sessions', 'POST', data, 'faculty');
-            log('Session Created');
-            loadSessions();
-        }
-
-        async function loadSessions() {
-            sessions = await apiRequest('/sessions', 'GET', null, 'faculty');
-            const list = document.getElementById('fac-session-list');
-            list.innerHTML = sessions.map(s => `
-            <div class="item">
-                <b>${s.program} (${s.batch})</b><br>
-                <small>${s.academic_year} | ID: ${s.id}</small>
-            </div>
-        `).join('');
-            updateSessionDropdown();
-        }
-
-        function updateSessionDropdown() {
-            const sel = document.getElementById('int-session-select');
-            sel.innerHTML = '<option value="">-- Select Session --</option>' +
-                sessions.map(s => `<option value="${s.id}">${s.program} - ${s.batch}</option>`).join('');
-        }
-
-        // CORPORATE
+        /* --- CORPORATE ACTIONS --- */
         async function createInternship() {
             const data = {
                 title: document.getElementById('int-title').value,
                 description: document.getElementById('int-desc').value,
-                session_id: document.getElementById('int-session-select').value
+                department_id: document.getElementById('int-dept').value,
+                location_type: document.getElementById('int-location').value,
+                duration: document.getElementById('int-duration').value,
+                is_paid: document.getElementById('int-paid').checked,
+                stipend: document.getElementById('int-paid').checked ? document.getElementById('int-stipend').value : null
             };
-            if (!data.session_id) return alert('Select a Session first!');
 
-            await apiRequest('/internships', 'POST', data, 'corporate');
-            log('Internship Posted (Status: PENDING)');
+            if (editingInternshipId) {
+                await apiRequest(`/internships/${editingInternshipId}`, 'PATCH', data, 'corporate');
+                log(`Updated Internship: ${data.title}`);
+                editingInternshipId = null;
+                document.getElementById('post-btn').innerText = 'Post Internship';
+            } else {
+                await apiRequest('/internships', 'POST', data, 'corporate');
+                log(`Posted Internship: ${data.title}`);
+            }
             loadMyInternships();
         }
 
         async function loadMyInternships() {
-            const items = await apiRequest('/internships/my', 'GET', null, 'corporate');
-            document.getElementById('corp-int-list').innerHTML = items.map(renderInternship).join('');
+            myInternships = await apiRequest('/internships/my', 'GET', null, 'corporate');
+            document.getElementById('corp-int-list').innerHTML = myInternships.map(i => `
+            <div class="internship-item" style="${i.status === 'CLOSED' ? 'opacity: 0.6; border-left: 4px solid #ef4444;' : ''}">
+                ${renderInternshipContent(i)}
+                ${i.status === 'CLOSED' ? '<div style="background:#ef4444; color:white; padding:4px 12px; border-radius:6px; font-size:0.85rem; font-weight:600; display:inline-block; margin-bottom:10px;">🔒 CLOSED</div>' : ''}
+                <div class="btn-group">
+                    ${i.status !== 'CLOSED' ? `<button class="btn-primary" onclick="editInternship('${i.id}')">Edit</button>` : ''}
+                    ${i.status !== 'CLOSED' ? `<button class="btn-secondary" onclick="closeInternship('${i.id}')">Close</button>` : ''}
+                    <button class="btn-danger" onclick="deleteInternship('${i.id}')">Delete</button>
+                </div>
+            </div>
+        `).join('');
         }
 
-        // PLACEMENT
+        function editInternship(id) {
+            console.log('editInternship called with ID:', id);
+
+            const i = myInternships.find(x => x.id === id);
+            console.log('Found internship:', i);
+
+            if (!i) {
+                console.error('Internship not found!');
+                return;
+            }
+
+            // Populate modal form
+            document.getElementById('edit-title').value = i.title;
+            document.getElementById('edit-desc').value = i.description;
+            if (i.department) document.getElementById('edit-dept').value = i.department.id;
+            document.getElementById('edit-location').value = i.location_type;
+
+            // Parse duration (e.g. "6 Months" -> number=6, unit="Months")
+            const durationMatch = i.duration.match(/(\d+)\s*(\w+)/);
+            if (durationMatch) {
+                document.getElementById('edit-duration').value = durationMatch[1];
+                document.getElementById('edit-duration-unit').value = durationMatch[2];
+            } else {
+                document.getElementById('edit-duration').value = i.duration;
+                document.getElementById('edit-duration-unit').value = 'Months';
+            }
+
+            document.getElementById('edit-paid').checked = i.is_paid;
+
+            const stipendInput = document.getElementById('edit-stipend');
+            if (i.is_paid) {
+                stipendInput.classList.remove('hidden');
+                stipendInput.value = i.stipend || '';
+            } else {
+                stipendInput.classList.add('hidden');
+                stipendInput.value = '';
+            }
+
+            editingInternshipId = id;
+            log(`Opening edit modal for: ${i.title}`);
+
+            // Show modal
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+            editingInternshipId = null;
+        }
+
+        function toggleEditStipend() {
+            const isPaid = document.getElementById('edit-paid').checked;
+            const stipendInput = document.getElementById('edit-stipend');
+            if (isPaid) {
+                stipendInput.classList.remove('hidden');
+            } else {
+                stipendInput.classList.add('hidden');
+                stipendInput.value = '';
+            }
+        }
+
+        async function saveEdit() {
+            if (!editingInternshipId) return;
+
+            const durationValue = document.getElementById('edit-duration').value;
+            const durationUnit = document.getElementById('edit-duration-unit').value;
+            const duration = `${durationValue} ${durationUnit}`;
+
+            const data = {
+                title: document.getElementById('edit-title').value,
+                description: document.getElementById('edit-desc').value,
+                department_id: document.getElementById('edit-dept').value,
+                location_type: document.getElementById('edit-location').value,
+                duration: duration,
+                is_paid: document.getElementById('edit-paid').checked,
+                stipend: document.getElementById('edit-stipend').value || null
+            };
+
+            await apiRequest(`/internships/${editingInternshipId}`, 'PATCH', data, 'corporate');
+            log(`Updated Internship: ${data.title}`);
+
+            closeEditModal();
+            loadMyInternships();
+        }
+
+        // Add Modal Functions
+        function openAddModal() {
+            // Clear form
+            document.getElementById('add-title').value = '';
+            document.getElementById('add-desc').value = '';
+            document.getElementById('add-location').value = 'REMOTE';
+            document.getElementById('add-duration').value = '';
+            document.getElementById('add-duration-unit').value = 'Months';
+            document.getElementById('add-paid').checked = false;
+            document.getElementById('add-stipend').value = '';
+            document.getElementById('add-stipend').classList.add('hidden');
+
+            // Show modal
+            document.getElementById('add-modal').classList.remove('hidden');
+        }
+
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.add('hidden');
+        }
+
+        function toggleAddStipend() {
+            const isPaid = document.getElementById('add-paid').checked;
+            const stipendInput = document.getElementById('add-stipend');
+            if (isPaid) {
+                stipendInput.classList.remove('hidden');
+            } else {
+                stipendInput.classList.add('hidden');
+                stipendInput.value = '';
+            }
+        }
+
+        async function saveAdd() {
+            const durationValue = document.getElementById('add-duration').value;
+            const durationUnit = document.getElementById('add-duration-unit').value;
+            const duration = `${durationValue} ${durationUnit}`;
+
+            const data = {
+                title: document.getElementById('add-title').value,
+                description: document.getElementById('add-desc').value,
+                department_id: document.getElementById('add-dept').value,
+                location_type: document.getElementById('add-location').value,
+                duration: duration,
+                is_paid: document.getElementById('add-paid').checked,
+                stipend: document.getElementById('add-stipend').value || null
+            };
+
+            await apiRequest('/internships', 'POST', data, 'corporate');
+            log(`Posted Internship: ${data.title}`);
+
+            closeAddModal();
+            loadMyInternships();
+        }
+
+        async function closeInternship(id) {
+            if (!confirm('Are you sure you want to close this internship? It will no longer be visible to students.')) return;
+            await apiRequest(`/internships/${id}/close`, 'PATCH', null, 'corporate');
+            log('Internship Closed.');
+            loadMyInternships();
+        }
+
+        async function deleteInternship(id) {
+            if (!confirm('Are you sure you want to cancel this internship?')) return;
+            loadMyInternships();
+        }
+
+        /* --- PLACEMENT ACTIONS --- */
         async function loadPendingInternships() {
             const items = await apiRequest('/internships/pending', 'GET', null, 'placement');
             document.getElementById('place-int-list').innerHTML = items.map(i => `
-            <div class="item">
+            <div class="internship-item">
                 ${renderInternshipContent(i)}
-                <div style="margin-top:10px;">
-                    <button class="success" onclick="approveInt('${i.id}')">Approve (Sync ERP)</button>
-                    <button class="danger" onclick="rejectInt('${i.id}')">Reject</button>
+                <div class="btn-group">
+                    <button class="btn-success" onclick="approveInt('${i.id}')">Approve</button>
+                    <button class="btn-danger" onclick="rejectInt('${i.id}')">Reject</button>
                 </div>
             </div>
         `).join('');
@@ -494,37 +1107,67 @@
 
         async function approveInt(id) {
             await apiRequest(`/internships/${id}/approve`, 'POST', null, 'placement');
-            log(`Internship ${id} APPROVED & Synced to ERP.`);
+            log(`Approved ${id}`);
             loadPendingInternships();
         }
-
         async function rejectInt(id) {
             await apiRequest(`/internships/${id}/reject`, 'POST', null, 'placement');
-            log(`Internship ${id} REJECTED.`);
+            log(`Rejected ${id}`);
             loadPendingInternships();
         }
 
-        // STUDENT
+        /* --- STUDENT ACTIONS --- */
         async function loadApprovedInternships() {
             const items = await apiRequest('/internships/approved', 'GET', null, 'student');
-            document.getElementById('stud-int-list').innerHTML = items.map(renderInternship).join('');
+            document.getElementById('stud-int-list').innerHTML = items.map(i => `
+            <div class="internship-item">
+                ${renderInternshipContent(i)}
+                <div class="btn-group">
+                    <button class="btn-primary" disabled>Apply Now (Coming Soon)</button>
+                </div>
+            </div>
+        `).join('');
         }
 
-        // Helpers
-        function renderInternship(i) {
-            return `<div class="item">${renderInternshipContent(i)}</div>`;
-        }
-
+        /* --- HELPERS --- */
         function renderInternshipContent(i) {
+            const stipendInfo = i.is_paid ? `Paid (${i.stipend})` : 'Unpaid';
             return `
-            <b>${i.title}</b> <span class="status-badge status-${i.status}">${i.status}</span><br>
-            <small>ID: ${i.id}</small>
-            <p>${i.description}</p>
+            <div class="item-header">
+                <span class="item-title">${i.title}</span>
+                <span class="status-badge status-${i.status}">${i.status}</span>
+            </div>
+            <div class="item-details">
+                <div class="item-row"><span>🏢</span> ${i.department ? i.department.name : 'Unknown Dept'}</div>
+                <div class="item-row"><span>📍</span> ${i.location_type}</div>
+                <div class="item-row"><span>💰</span> ${stipendInfo}</div>
+                <div class="item-row"><span>⏳</span> ${i.duration}</div>
+            </div>
+            <div class="item-desc">${i.description}</div>
+            <div style="font-size:0.8rem; color:#94a3b8; margin-top:5px;">ID: ${i.id}</div>
         `;
         }
 
-    </script>
+        /* --- INITIALIZATION --- */
+        (function init() {
+            log('System Initialized. Waiting for input...');
 
+            // Always show login page - no auto-login
+            // Clear any stale tokens (optional - comment out if you want to keep them for manual login)
+            // tokens.corporate = null;
+            // tokens.placement = null;
+            // tokens.student = null;
+
+            // Ensure all nav items are visible
+            document.getElementById('nav-corporate').classList.remove('hidden');
+            document.getElementById('nav-placement').classList.remove('hidden');
+            document.getElementById('nav-student').classList.remove('hidden');
+
+            // Default to corporate login view
+            switchView('corporate');
+        })();
+
+    </script>
 </body>
 
 </html>

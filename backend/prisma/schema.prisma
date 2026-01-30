@@ -24,6 +24,13 @@ enum InternshipStatus {
   PENDING
   APPROVED
   REJECTED
+  CLOSED
+}
+
+enum LocationType {
+  REMOTE
+  ONSITE
+  HYBRID
 }
 
 model User {
@@ -35,32 +42,15 @@ model User {
   created_at DateTime @default(now())
 
   // Relations
-  sessions          InternshipSession[] // Faculty creates sessions
   corporate_profile CorporateProfile?
-  internships       Internship[]        @relation("CreatedInternships") // Corporate creates internships (or faculty for some reason? No, prompt says Corp creates)
-}
-
-model InternshipSession {
-  id            String   @id @default(uuid())
-  program       String
-  batch         String
-  academic_year String
-  start_date    DateTime
-  end_date      DateTime
-  
-  created_by_id String
-  created_by    User     @relation(fields: [created_by_id], references: [id])
-
-  internships   Internship[]
-
-  @@map("internship_sessions")
+  internships       Internship[]        @relation("CreatedInternships") 
 }
 
 model CorporateProfile {
   id           String @id @default(uuid())
   company_name String
   hr_name      String
-  email        String // Redundant if User has email? Prompt asks for it explicitly.
+  email        String 
   
   user_id      String @unique
   user         User   @relation(fields: [user_id], references: [id])
@@ -70,27 +60,35 @@ model CorporateProfile {
   @@map("corporate_profiles")
 }
 
+model Department {
+  id   String @id @default(uuid())
+  name String @unique
+  
+  internships Internship[]
+
+  @@map("departments")
+}
+
 model Internship {
   id          String           @id @default(uuid())
   title       String
   description String
   status      InternshipStatus @default(DRAFT)
+  
+  // New Fields
+  department_id String
+  department    Department @relation(fields: [department_id], references: [id])
+  
+  location_type LocationType
+  is_paid       Boolean
+  stipend       String?   // Optional: e.g. "10000/month", "Unpaid"
+  duration      String    // e.g. "3 months"
+  
   created_at  DateTime         @default(now())
 
   corporate_id String
   corporate    CorporateProfile @relation(fields: [corporate_id], references: [id])
   
-  // Also linking to User who created it just in case, though CorporateProfile link is stronger? 
-  // Prompt says "Internship" has "corporate_id". Usually better to link to CorporateProfile.
-  // Wait, prompt says "Corporate recruiter creates internship postings linked to a session".
-  // Prompt says Internship model has: id, title, description, status, corporate_id, session_id, created_at.
-  // "corporate_id" likely refers to CorporateProfile.
-  
-  session_id   String
-  session      InternshipSession @relation(fields: [session_id], references: [id])
-
-  // Optional: Track which user created it if multiple users can manage a corporate profile? 
-  // For now, sticking to prompt: corporate_id
   creator_id String?
   creator    User?   @relation("CreatedInternships", fields: [creator_id], references: [id])
 

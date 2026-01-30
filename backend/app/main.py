@@ -3,7 +3,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.db import connect_db, disconnect_db
 from app.auth.router import router as auth_router
-from app.sessions.router import router as sessions_router
 from app.internships.router import router as internships_router
 from app.approvals.router import router as approvals_router
 
@@ -18,11 +17,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.departments.router import router as departments_router
+
 # API Routers
 app.include_router(auth_router)
-app.include_router(sessions_router)
 app.include_router(internships_router)
 app.include_router(approvals_router)
+app.include_router(departments_router)
 
 # Mount Frontend
 try:

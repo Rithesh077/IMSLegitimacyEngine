@@ -4,7 +4,7 @@ from prisma.models import User
 from prisma.enums import Role, InternshipStatus
 from app.db import db
 from app.auth.dependencies import require_role, get_current_user
-from app.internships.schemas import InternshipCreate, InternshipResponse
+from app.internships.schemas import InternshipCreate, InternshipResponse, InternshipUpdate
 
 router = APIRouter(prefix="/internships", tags=["Internships"])
 
@@ -19,20 +19,20 @@ async def create_internship(
         # Should not happen if registered correctly, but safeguard
         raise HTTPException(status_code=400, detail="Corporate profile not found")
 
-    # Verify session exists
-    session = await db.internshipsession.find_unique(where={"id": data.session_id})
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-
     internship = await db.internship.create(
         data={
             "title": data.title,
             "description": data.description,
-            "status": InternshipStatus.PENDING, # Prompt says 'Corporate creates...' logic implies Pending or Draft. Placement views PENDING. So Pending makes sense.
-            "session_id": data.session_id,
+            "status": InternshipStatus.PENDING, 
+            "department_id": data.department_id,
+            "location_type": data.location_type,
+            "is_paid": data.is_paid,
+            "stipend": data.stipend,
+            "duration": data.duration,
             "corporate_id": corporate_profile.id,
             "creator_id": current_user.id
-        }
+        },
+        include={"department": True}
     )
     return internship
 
@@ -46,7 +46,8 @@ async def list_my_internships(
          
     internships = await db.internship.find_many(
         where={"corporate_id": corporate_profile.id},
-        order={"created_at": "desc"}
+        order={"created_at": "desc"},
+        include={"department": True}
     )
     return internships
 
@@ -56,6 +57,75 @@ async def list_approved_internships(
 ):
     internships = await db.internship.find_many(
         where={"status": InternshipStatus.APPROVED},
-        order={"created_at": "desc"}
+        order={"created_at": "desc"},
+        include={"department": True}
     )
     return internships
+
+@router.patch("/{internship_id}/close")
+async def close_internship(
+    internship_id: str,
+    current_user: User = Depends(require_role(Role.CORPORATE))
+):
+    """Close an internship (mark as CLOSED without deleting)"""
+    corporate_profile = await db.corporateprofile.find_unique(where={"user_id": current_user.id})
+    if not corporate_profile:
+        raise HTTPException(status_code=400, detail="Corporate profile not found")
+    
+    internship = await db.internship.find_unique(where={"id": internship_id})
+    if not internship:
+        raise HTTPException(status_code=404, detail="Internship not found")
+    
+    if internship.corporate_id != corporate_profile.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    updated = await db.internship.update(
+        where={"id": internship_id},
+        data={"status": InternshipStatus.CLOSED}
+    )
+    return updated
+
+@router.delete("/{internship_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_internship(
+    internship_id: str,
+    current_user: User = Depends(require_role(Role.CORPORATE))
+):
+    corporate_profile = await db.corporateprofile.find_unique(where={"user_id": current_user.id})
+    if not corporate_profile:
+        raise HTTPException(status_code=400, detail="Corporate profile not found")
+    
+    internship = await db.internship.find_unique(where={"id": internship_id})
+    if not internship:
+        raise HTTPException(status_code=404, detail="Internship not found")
+        
+    if internship.corporate_id != corporate_profile.id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this internship")
+        
+    await db.internship.delete(where={"id": internship_id})
+    return None
+
+@router.patch("/{id}", response_model=InternshipResponse)
+async def update_internship(
+    id: str,
+    data: InternshipUpdate,
+    current_user: User = Depends(require_role(Role.CORPORATE))
+):
+    corporate_profile = await db.corporateprofile.find_unique(where={"user_id": current_user.id})
+    if not corporate_profile:
+        raise HTTPException(status_code=400, detail="Corporate profile not found")
+        
+    internship = await db.internship.find_unique(where={"id": id})
+    if not internship:
+        raise HTTPException(status_code=404, detail="Internship not found")
+        
+    if internship.corporate_id != corporate_profile.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this internship")
+    
+    update_data = data.dict(exclude_unset=True)
+    
+    updated_internship = await db.internship.update(
+        where={"id": id},
+        data=update_data,
+        include={"department": True}
+    )
+    return updated_internship

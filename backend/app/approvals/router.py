@@ -15,7 +15,8 @@ async def list_pending_internships(
 ):
     internships = await db.internship.find_many(
         where={"status": InternshipStatus.PENDING},
-        order={"created_at": "asc"}
+        order={"created_at": "asc"},
+        include={"department": True}
     )
     return internships
 
@@ -30,7 +31,8 @@ async def approve_internship(
         
     updated_internship = await db.internship.update(
         where={"id": id},
-        data={"status": InternshipStatus.APPROVED}
+        data={"status": InternshipStatus.APPROVED},
+        include={"department": True}
     )
     
     # Trigger Mock ERP
@@ -49,6 +51,7 @@ async def reject_internship(
         
     updated_internship = await db.internship.update(
         where={"id": id},
-        data={"status": InternshipStatus.REJECTED}
+        data={"status": InternshipStatus.REJECTED},
+        include={"department": True}
     )
     return updated_internship
