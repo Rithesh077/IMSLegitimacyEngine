@@ -30,7 +30,8 @@ COPY *.py .
 EXPOSE 8000
 
 # Command to run the application
-# We use a shell script or direct command. 
-# For production, you might want to run migrations too, but usually that's a separate step or init container.
-# For simplicity, we just run the server.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# We use bash to chain commands: 
+# 1. Update DB schema (prisma db push)
+# 2. Seed initial data (safe to run multiple times)
+# 3. Start the server
+CMD ["bash", "-c", "prisma db push && python seed.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
