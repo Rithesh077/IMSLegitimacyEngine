@@ -541,13 +541,13 @@
                 <button class="modal-close" onclick="closeEditModal()">&times;</button>
             </div>
             <div class="form-group">
-                <label>Title</label>
-                <input type="text" id="edit-title">
+                <label>Title <span style="color: red;">*</span></label>
+                <input type="text" id="edit-title" required>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="form-group">
-                    <label>Department</label>
-                    <select id="edit-dept"></select>
+                    <label>Department <span style="color: red;">*</span></label>
+                    <select id="edit-dept" required></select>
                 </div>
                 <div class="form-group">
                     <label>Location</label>
@@ -560,9 +560,9 @@
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="form-group">
-                    <label>Duration</label>
+                    <label>Duration <span style="color: red;">*</span></label>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <input type="number" id="edit-duration" placeholder="e.g. 6" min="1">
+                        <input type="number" id="edit-duration" placeholder="e.g. 6" min="1" required>
                         <select id="edit-duration-unit">
                             <option value="Days">Days</option>
                             <option value="Months" selected>Months</option>
@@ -580,8 +580,8 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Description</label>
-                <textarea id="edit-desc" rows="4"></textarea>
+                <label>Description <span style="color: red;">*</span></label>
+                <textarea id="edit-desc" rows="4" required></textarea>
             </div>
             <div class="btn-group">
                 <button class="btn-primary" onclick="saveEdit()">Update Internship</button>
@@ -598,13 +598,13 @@
                 <button class="modal-close" onclick="closeAddModal()">&times;</button>
             </div>
             <div class="form-group">
-                <label>Title</label>
-                <input type="text" id="add-title" placeholder="e.g. Senior Python Developer">
+                <label>Title <span style="color: red;">*</span></label>
+                <input type="text" id="add-title" placeholder="e.g. Senior Python Developer" required>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="form-group">
-                    <label>Department</label>
-                    <select id="add-dept"></select>
+                    <label>Department <span style="color: red;">*</span></label>
+                    <select id="add-dept" required></select>
                 </div>
                 <div class="form-group">
                     <label>Location</label>
@@ -617,9 +617,9 @@
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="form-group">
-                    <label>Duration</label>
+                    <label>Duration <span style="color: red;">*</span></label>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <input type="number" id="add-duration" placeholder="e.g. 6" min="1">
+                        <input type="number" id="add-duration" placeholder="e.g. 6" min="1" required>
                         <select id="add-duration-unit">
                             <option value="Days">Days</option>
                             <option value="Months" selected>Months</option>
@@ -637,8 +637,8 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Description</label>
-                <textarea id="add-desc" rows="4" placeholder="Job details..."></textarea>
+                <label>Description <span style="color: red;">*</span></label>
+                <textarea id="add-desc" rows="4" placeholder="Job details..." required></textarea>
             </div>
             <div class="btn-group">
                 <button class="btn-primary" onclick="saveAdd()">Post Internship</button>
@@ -648,7 +648,9 @@
     </div>
 
     <script>
-        const API_URL = 'https://internshipportal-4iul.onrender.com';
+        // Auto-detect environment and use appropriate API URL
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const API_URL = isLocalhost ? 'http://localhost:8000' : 'https://internshipportal-4iul.onrender.com';
         let tokens = {
             corporate: localStorage.getItem('token_corporate'),
             placement: localStorage.getItem('token_placement'),
@@ -764,10 +766,24 @@
                     throw new Error('Session expired');
                 }
 
-                const data = await res.json();
+
+                // Handle empty responses (e.g., from DELETE operations)
+                const contentType = res.headers.get('content-type');
+                const text = await res.text();
+
+                let data = null;
+                if (text && text.length > 0) {
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        console.warn('Response is not JSON:', text);
+                        data = { message: text };
+                    }
+                }
+
                 if (!res.ok) {
                     let errMsg = 'Request failed';
-                    if (data.detail) {
+                    if (data && data.detail) {
                         if (typeof data.detail === 'string') errMsg = data.detail;
                         else if (Array.isArray(data.detail)) errMsg = data.detail.map(e => `${e.loc.join('.')}: ${e.msg}`).join('\n');
                         else errMsg = JSON.stringify(data.detail);
@@ -928,13 +944,30 @@
 
         async function loadMyInternships() {
             myInternships = await apiRequest('/internships/my', 'GET', null, 'corporate');
+
+            // Auto-close any rejected internships
+            for (const internship of myInternships) {
+                if (internship.status === 'REJECTED' && internship.is_active) {
+                    try {
+                        await apiRequest(`/internships/${internship.id}/close`, 'PATCH', null, 'corporate');
+                        log(`Auto-closed rejected internship: ${internship.id}`);
+                        // Mark as closed locally to update UI immediately
+                        internship.status = 'CLOSED';
+                        internship.is_active = false;
+                    } catch (error) {
+                        console.error(`Failed to auto-close rejected internship ${internship.id}:`, error);
+                    }
+                }
+            }
+
             document.getElementById('corp-int-list').innerHTML = myInternships.map(i => `
-            <div class="internship-item" style="${i.status === 'CLOSED' ? 'opacity: 0.6; border-left: 4px solid #ef4444;' : ''}">
+            <div class="internship-item" style="${i.status === 'CLOSED' || i.status === 'REJECTED' ? 'opacity: 0.6; border-left: 4px solid #ef4444;' : ''}">
                 ${renderInternshipContent(i)}
                 ${i.status === 'CLOSED' ? '<div style="background:#ef4444; color:white; padding:4px 12px; border-radius:6px; font-size:0.85rem; font-weight:600; display:inline-block; margin-bottom:10px;">🔒 CLOSED</div>' : ''}
+                ${i.status === 'REJECTED' ? '<div style="background:#dc2626; color:white; padding:4px 12px; border-radius:6px; font-size:0.85rem; font-weight:600; display:inline-block; margin-bottom:10px;">❌ REJECTED & CLOSED</div>' : ''}
                 <div class="btn-group">
-                    ${i.status !== 'CLOSED' ? `<button class="btn-primary" onclick="editInternship('${i.id}')">Edit</button>` : ''}
-                    ${i.status !== 'CLOSED' ? `<button class="btn-secondary" onclick="closeInternship('${i.id}')">Close</button>` : ''}
+                    ${i.status !== 'CLOSED' && i.status !== 'REJECTED' ? `<button class="btn-primary" onclick="editInternship('${i.id}')">Edit</button>` : ''}
+                    ${i.status !== 'CLOSED' && i.status !== 'REJECTED' ? `<button class="btn-secondary" onclick="closeInternship('${i.id}')">Close</button>` : ''}
                     <button class="btn-danger" onclick="deleteInternship('${i.id}')">Delete</button>
                 </div>
             </div>
@@ -1005,14 +1038,36 @@
         async function saveEdit() {
             if (!editingInternshipId) return;
 
+            // Validation
+            const title = document.getElementById('edit-title').value.trim();
+            const description = document.getElementById('edit-desc').value.trim();
+            const departmentId = document.getElementById('edit-dept').value;
             const durationValue = document.getElementById('edit-duration').value;
+
+            if (!title) {
+                alert('Please enter a title for the internship.');
+                return;
+            }
+            if (!departmentId) {
+                alert('Please select a department.');
+                return;
+            }
+            if (!durationValue || durationValue <= 0) {
+                alert('Please enter a valid duration.');
+                return;
+            }
+            if (!description) {
+                alert('Please enter a description.');
+                return;
+            }
+
             const durationUnit = document.getElementById('edit-duration-unit').value;
             const duration = `${durationValue} ${durationUnit}`;
 
             const data = {
-                title: document.getElementById('edit-title').value,
-                description: document.getElementById('edit-desc').value,
-                department_id: document.getElementById('edit-dept').value,
+                title: title,
+                description: description,
+                department_id: departmentId,
                 location_type: document.getElementById('edit-location').value,
                 duration: duration,
                 is_paid: document.getElementById('edit-paid').checked,
@@ -1058,14 +1113,36 @@
         }
 
         async function saveAdd() {
+            // Validation
+            const title = document.getElementById('add-title').value.trim();
+            const description = document.getElementById('add-desc').value.trim();
+            const departmentId = document.getElementById('add-dept').value;
             const durationValue = document.getElementById('add-duration').value;
+
+            if (!title) {
+                alert('Please enter a title for the internship.');
+                return;
+            }
+            if (!departmentId) {
+                alert('Please select a department.');
+                return;
+            }
+            if (!durationValue || durationValue <= 0) {
+                alert('Please enter a valid duration.');
+                return;
+            }
+            if (!description) {
+                alert('Please enter a description.');
+                return;
+            }
+
             const durationUnit = document.getElementById('add-duration-unit').value;
             const duration = `${durationValue} ${durationUnit}`;
 
             const data = {
-                title: document.getElementById('add-title').value,
-                description: document.getElementById('add-desc').value,
-                department_id: document.getElementById('add-dept').value,
+                title: title,
+                description: description,
+                department_id: departmentId,
                 location_type: document.getElementById('add-location').value,
                 duration: duration,
                 is_paid: document.getElementById('add-paid').checked,
@@ -1087,8 +1164,14 @@
         }
 
         async function deleteInternship(id) {
-            if (!confirm('Are you sure you want to cancel this internship?')) return;
-            loadMyInternships();
+            if (!confirm('Are you sure you want to delete this internship? This action cannot be undone.')) return;
+            try {
+                await apiRequest(`/internships/${id}`, 'DELETE', null, 'corporate');
+                log('Internship Deleted.');
+                loadMyInternships();
+            } catch (error) {
+                console.error('Failed to delete internship:', error);
+            }
         }
 
         /* --- PLACEMENT ACTIONS --- */
@@ -1111,9 +1194,21 @@
             loadPendingInternships();
         }
         async function rejectInt(id) {
-            await apiRequest(`/internships/${id}/reject`, 'POST', null, 'placement');
-            log(`Rejected ${id}`);
-            loadPendingInternships();
+            try {
+                // First reject the internship
+                await apiRequest(`/internships/${id}/reject`, 'POST', null, 'placement');
+                log(`Rejected ${id}`);
+
+                // Then automatically close it so students can't see it
+                await apiRequest(`/internships/${id}/close`, 'PATCH', null, 'placement');
+                log(`Auto-closed rejected internship ${id}`);
+
+                loadPendingInternships();
+            } catch (error) {
+                console.error('Error during rejection:', error);
+                // Still refresh the list even if there was an error
+                loadPendingInternships();
+            }
         }
 
         /* --- STUDENT ACTIONS --- */
@@ -1150,21 +1245,38 @@
 
         /* --- INITIALIZATION --- */
         (function init() {
-            log('System Initialized. Waiting for input...');
+            log('System Initialized. Checking for existing session...');
 
-            // Always show login page - no auto-login
-            // Clear any stale tokens (optional - comment out if you want to keep them for manual login)
-            // tokens.corporate = null;
-            // tokens.placement = null;
-            // tokens.student = null;
+            // Check if any role has a valid token and restore session
+            let restoredRole = null;
 
-            // Ensure all nav items are visible
-            document.getElementById('nav-corporate').classList.remove('hidden');
-            document.getElementById('nav-placement').classList.remove('hidden');
-            document.getElementById('nav-student').classList.remove('hidden');
+            if (tokens.corporate) {
+                restoredRole = 'corporate';
+            } else if (tokens.placement) {
+                restoredRole = 'placement';
+            } else if (tokens.student) {
+                restoredRole = 'student';
+            }
 
-            // Default to corporate login view
-            switchView('corporate');
+            if (restoredRole) {
+                log(`Restoring ${restoredRole.toUpperCase()} session...`);
+
+                // Restore the UI state for the logged-in role
+                handleLoginSuccess(restoredRole, tokens[restoredRole]);
+
+                // Switch to the appropriate view
+                switchView(restoredRole);
+            } else {
+                log('No existing session found. Showing login page.');
+
+                // Ensure all nav items are visible
+                document.getElementById('nav-corporate').classList.remove('hidden');
+                document.getElementById('nav-placement').classList.remove('hidden');
+                document.getElementById('nav-student').classList.remove('hidden');
+
+                // Default to corporate login view
+                switchView('corporate');
+            }
         })();
 
     </script>
