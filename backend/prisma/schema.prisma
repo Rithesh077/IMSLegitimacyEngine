@@ -2,7 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider             = "C:/Users/User/Music/Github/InternshipPortal/backend/venv/Scripts/prisma-client-py.exe"
+  provider             = "prisma-client-py"
   interface            = "asyncio"
   recursive_type_depth = 5
 }
