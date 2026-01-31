@@ -19,7 +19,14 @@ class CorporateRegister(BaseModel):
     email: EmailStr
     password: str
     company_name: str
+    company_name: str
     hr_name: str
+
+class StudentRegister(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+    department_id: str
 
 class UserResponse(BaseModel):
     id: str

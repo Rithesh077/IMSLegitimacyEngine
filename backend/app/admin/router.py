@@ -108,6 +108,8 @@ class AdminUserCreate(BaseModel):
     # Optional fields for Corporate
     company_name: Optional[str] = None
     hr_name: Optional[str] = None
+    # Optional fields for Student
+    department_id: Optional[str] = None
 
 @router.post("/users")
 async def create_user(
@@ -141,8 +143,75 @@ async def create_user(
             }
         }
     
+    # Handle Student Department
+    if data.role == Role.STUDENT and data.department_id:
+        create_data["department_id"] = data.department_id
+
     user = await db.user.create(
         data=create_data,
         include={"corporate_profile": True} if data.role == Role.CORPORATE else None
     )
     return user
+
+@router.get("/departments")
+async def list_departments(
+    current_user: User = Depends(require_role(Role.ADMIN))
+):
+    return await db.department.find_many(
+        include={
+            "internships": True,
+            "users": True
+        }
+    )
+
+@router.get("/departments/{department_id}/analytics")
+async def get_department_analytics(
+    department_id: str,
+    current_user: User = Depends(require_role(Role.ADMIN))
+):
+    # Get department details
+    department = await db.department.find_unique(where={"id": department_id})
+    if not department:
+        raise HTTPException(status_code=404, detail="Department not found")
+
+    # Get students in this department
+    students = await db.user.find_many(
+        where={"department_id": department_id, "role": Role.STUDENT}
+    )
+    student_ids = [s.id for s in students]
+    
+    # Get applications by these students
+    if not student_ids:
+        return {
+            "department": department.name,
+            "total_students": 0,
+            "total_applications": 0,
+            "total_accepted": 0,
+            "success_rate": 0,
+            "applications_by_status": {}
+        }
+
+    applications = await db.application.find_many(
+        where={"student_id": {"in": student_ids}},
+        include={"internship": True} # Include internship details
+    )
+
+    total_applications = len(applications)
+    accepted_count = sum(1 for app in applications if app.status == "ACCEPTED") # Adjust based on Enum string value
+    
+    # Calculate status breakdown
+    status_counts = {}
+    for app in applications:
+        status_str = app.status.value if hasattr(app.status, 'value') else str(app.status)
+        status_counts[status_str] = status_counts.get(status_str, 0) + 1
+
+    success_rate = (accepted_count / total_applications * 100) if total_applications > 0 else 0
+
+    return {
+        "department": department.name,
+        "total_students": len(students),
+        "total_applications": total_applications,
+        "total_accepted": accepted_count,
+        "success_rate": round(success_rate, 2),
+        "applications_by_status": status_counts
+    }

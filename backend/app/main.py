@@ -28,11 +28,20 @@ app.include_router(departments_router)
 from app.admin.router import router as admin_router
 app.include_router(admin_router)
 
+import os
+
+# Create uploads directory if it doesn't exist
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+
 # Mount Frontend
 try:
     app.mount("/ui", StaticFiles(directory="frontend-test", html=True), name="ui")
 except RuntimeError:
     print("Frontend directory not found, skipping mount.")
+
+# Mount Uploads
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.on_event("startup")
 async def startup():
