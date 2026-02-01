@@ -146,3 +146,39 @@ async def create_user(
         include={"corporate_profile": True} if data.role == Role.CORPORATE else None
     )
     return user
+
+@router.get("/verifications/pending")
+async def list_pending_verifications(
+    current_user: User = Depends(require_role(Role.ADMIN))
+):
+    # fetch all corporate profiles
+    # optimized: filtered in python for flexibilty (json handling)
+    profiles = await db.corporateprofile.find_many(
+        where={
+            "verification_report": {"not": None} # only those with reports
+        },
+        include={"user": True}
+    )
+    
+    pending = []
+    for p in profiles:
+        # check status in json
+        if p.verification_report:
+            # handle both dict and json string if prisma returns generic json
+            report = p.verification_report
+            
+            # check unverified status
+            # status could be 'Unverified' or 'Unknown' or low score
+            status = report.get("status")
+            if status == "Unverified" or status == "Unknown":
+                pending.append({
+                    "id": p.id,
+                    "company_name": p.company_name,
+                    "country": p.country,
+                    "user_email": p.user.email,
+                    "hr_name": p.hr_name,
+                    "verification_report": report,
+                    "registered_at": p.user.created_at
+                })
+                
+    return pending

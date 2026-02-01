@@ -1,25 +1,24 @@
 import asyncio
 import httpx
-from prisma import Prisma
 from app.db import db
 
 BASE_URL = "http://localhost:8000"
 
 async def verify():
-    # Helper to clean up
+    # helper to clean up
     print("Connecting to DB...")
     await db.connect()
     
     email = "testcorp@example.com"
     password = "password123"
     
-    # Clean up existing user if any
+    # clean up existing user if any
     existing_user = await db.user.find_unique(where={"email": email})
     if existing_user:
-        # Delete related profile first (cascade might not be set up for profile->user relation deletion in prisma client automatically if not in schema?)
-        # Schema has relations. Let's just try deleting user.
-        # But wait, we might have foreign key constraints.
-        # Let's delete internships first.
+        # delete related profile first because cascade might not be set up for profile user relation deletion automatically
+        # schema has relations so lets just try deleting user
+        # or wait we might have foreign key constraints
+        # lets delete internships first
         try:
              profile = await db.corporateprofile.find_unique(where={"user_id": existing_user.id})
              if profile:
@@ -29,7 +28,7 @@ async def verify():
         except Exception as e:
             print(f"Cleanup error: {e}")
 
-    # 1. Register Corporate User
+    # registering corporate user
     print("Registering User...")
     async with httpx.AsyncClient(base_url=BASE_URL) as client:
         reg_res = await client.post("/auth/register", json={
@@ -43,7 +42,7 @@ async def verify():
             print(f"Registration failed: {reg_res.text}")
             return
 
-        # 2. Login
+        # logging in
         print("Logging in...")
         login_res = await client.post("/auth/login", data={
             "username": email,
@@ -55,10 +54,10 @@ async def verify():
         token = login_res.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
-        # 3. Create Corporate Profile
-        # Handled by registration
+        # create corporate profile
+        # this is handled by registration
 
-        # 4. Post Internship
+        # posting internship
         print("Fetching Departments...")
         dept_res = await client.get("/departments")
         if dept_res.status_code != 200:

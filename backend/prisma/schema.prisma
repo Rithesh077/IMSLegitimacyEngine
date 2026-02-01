@@ -53,6 +53,15 @@ model CorporateProfile {
   hr_name      String
   email        String 
   
+  // New Fields for Legitimacy Pipeline
+  country             String   // Mandatory: "India", "USA", etc.
+  registration_number String?  // Optional: CIN, EIN, etc.
+  linkedin_url        String?
+  website_url         String?
+  
+  is_manually_added   Boolean  @default(false) // Admin Bypass Flag
+  verification_report Json?    // Stores the full Admin Report (Score, Rationale, Evidence)
+
   user_id      String @unique
   user         User   @relation(fields: [user_id], references: [id])
 

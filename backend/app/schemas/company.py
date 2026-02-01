@@ -1,41 +1,29 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
-from datetime import datetime
 
 class CompanyInput(BaseModel):
-    """
-    input for the analysis endpoint
-    """
-    name: str = Field(..., description="the official name of the company")
-    cin: Optional[str] = Field(None, description="cin (21 chars)")
-    domain: Optional[str] = Field(None, description="company website")
+    name: str
+    country: str
+    registry_id: str
+    document_content: Optional[str] = None
+    manual_verification: bool = False
+    
+    # New Signal Fields
+    linkedin_url: Optional[str] = None
+    website_urls: Optional[List[str]] = Field(default_factory=list)
+    recruiter_website: Optional[str] = None # Keeping for backward compat or merge with website_urls
 
 class VerificationResult(BaseModel):
-    """
-    result of the registry check
-    """
-    is_registered: bool = False
-    cin: Optional[str] = None
-    registration_date: Optional[str] = None
-    status: str = "Unknown"  # active, struck off, etc
-    confidence_score: float = 0.0
-    verification_source: str = "None"
-    red_flags: List[str] = []
-    
-    # internal flag to control flow
-    can_proceed_to_scraping: bool = False
+    verified: bool
+    confidence_score: float
+    details: Dict[str, Any]
 
 class CredibilityAnalysis(BaseModel):
-    """
-    final output for frontend
-    """
-    trust_score: float = Field(..., ge=0, le=100, description="0-100 score")
-    trust_tier: str = Field(..., description="high, medium, or low")
+    trust_score: float
+    trust_tier: str
     verification_status: str
-    review_count: int = 0
+    review_count: int
     sentiment_summary: str
-    red_flags: List[str] = []
-    scraped_sources: List[str] = []
-    
-    # detailed breakdown
-    details: Optional[Dict[str, Any]] = None
+    scraped_sources: List[str]
+    red_flags: List[str]
+    details: Dict[str, Any]

@@ -15,11 +15,15 @@ class UserLogin(BaseModel):
     password: str
 
 class CorporateRegister(BaseModel):
-    name: str
+    name: str # User's name
     email: EmailStr
     password: str
     company_name: str
     hr_name: str
+    country: str
+    registry_number: Optional[str] = None
+    website_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: str

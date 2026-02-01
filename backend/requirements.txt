@@ -4,6 +4,9 @@ pydantic
 requests
 beautifulsoup4
 python-dotenv
+googlesearch-python
+tenacity
+thefuzz
 
 # Advanced Scraping
 trafilatura

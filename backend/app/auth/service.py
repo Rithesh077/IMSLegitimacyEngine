@@ -18,7 +18,7 @@ class AuthService:
         return user
 
     async def register_corporate(self, data: CorporateRegister) -> User:
-        # Check if email exists
+        # check email exists
         existing_user = await db.user.find_unique(where={"email": data.email})
         if existing_user:
             raise HTTPException(
@@ -26,8 +26,30 @@ class AuthService:
                 detail="Email already registered"
             )
         
-        # Transactional create (Prisma supports nested writes)
-        # We need to create User AND CorporateProfile
+        # verification pipeline
+        # running this before saving to db
+        from app.engine.pipeline_orchestrator import PipelineOrchestrator
+        from app.schemas.company import CompanyInput
+        import json
+
+        orchestrator = PipelineOrchestrator()
+        
+        # map input data
+        pipeline_input = CompanyInput(
+            name=data.company_name,
+            country=data.country,
+            registry_id=data.registry_number,
+            website=data.website_url,
+            linkedin=data.linkedin_url
+        )
+        
+        # run pipeline
+        analysis_result = await orchestrator.run_pipeline(pipeline_input)
+        
+        # convert to json
+        report_json = json.loads(analysis_result.model_dump_json())
+
+        # creating user and profile
         hashed_pw = get_password_hash(data.password)
         
         user = await db.user.create(
@@ -40,7 +62,16 @@ class AuthService:
                     "create": {
                         "company_name": data.company_name,
                         "hr_name": data.hr_name,
-                        "email": data.email 
+                        "email": data.email,
+                        "country": data.country,
+                        "registration_number": data.registry_number,
+                        "website_url": data.website_url,
+                        "linkedin_url": data.linkedin_url,
+                        
+                        # core integration point
+                        # admin dashboard flags unverified status
+                        # stored in: user.corporate_profile.verification_report
+                        "verification_report": report_json,
                     }
                 }
             },
