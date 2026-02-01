@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from app.auth.schemas import Token, CorporateRegister, UserLogin, UserResponse
+from app.auth.schemas import Token, CorporateRegister, StudentRegister, UserLogin, UserResponse
 from app.auth.service import auth_service
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -8,6 +8,10 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register_corporate(data: CorporateRegister):
     return await auth_service.register_corporate(data)
+
+@router.post("/register-student", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def register_student(data: StudentRegister):
+    return await auth_service.register_student(data)
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):

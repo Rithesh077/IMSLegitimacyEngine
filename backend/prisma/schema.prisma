@@ -44,7 +44,11 @@ model User {
 
   // Relations
   corporate_profile CorporateProfile?
-  internships       Internship[]        @relation("CreatedInternships") 
+  internships       Internship[]        @relation("CreatedInternships")
+  applications      Application[]
+  
+  department_id String?
+  department    Department? @relation(fields: [department_id], references: [id])
 }
 
 model CorporateProfile {
@@ -75,6 +79,7 @@ model Department {
   name String @unique
   
   internships Internship[]
+  users       User[]
 
   @@map("departments")
 }
@@ -102,5 +107,31 @@ model Internship {
   creator_id String?
   creator    User?   @relation("CreatedInternships", fields: [creator_id], references: [id])
 
+  applications Application[]
+
   @@map("internships")
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  ACCEPTED
+  REJECTED
+}
+
+model Application {
+  id            String            @id @default(uuid())
+  resume_link   String
+  github_link   String?
+  linkedin_link String?
+  status        ApplicationStatus @default(PENDING)
+  created_at    DateTime          @default(now())
+
+  internship_id String
+  internship    Internship @relation(fields: [internship_id], references: [id])
+
+  student_id String
+  student    User   @relation(fields: [student_id], references: [id])
+
+  @@map("applications")
 }

@@ -7,21 +7,41 @@
     <title>Internship Management Portal</title>
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
-            --primary: #3b82f6;
-            --primary-hover: #2563eb;
-            --bg-body: #f3f4f6;
-            --bg-sidebar: #1e293b;
-            --text-sidebar: #f8fafc;
+            /* Branding & Colors */
+            --primary: #4f46e5;
+            /* Indigo-600 */
+            --primary-hover: #4338ca;
+            /* Indigo-700 */
+            --secondary: #64748b;
+            /* Slate-500 */
+            --bg-body: #f8fafc;
+            /* Slate-50 */
+            --bg-sidebar: #0f172a;
+            /* Slate-900 */
+            --text-sidebar: #e2e8f0;
+            /* Slate-200 */
             --bg-card: #ffffff;
             --text-main: #1e293b;
+            /* Slate-800 */
             --text-muted: #64748b;
+            /* Slate-500 */
             --border-color: #e2e8f0;
+            /* Slate-200 */
             --danger: #ef4444;
-            --success: #22c55e;
-            --sidebar-width: 260px;
+            /* Red-500 */
+            --success: #10b981;
+            /* Emerald-500 */
+            --warning: #f59e0b;
+            /* Amber-500 */
+            --sidebar-width: 280px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
 
         body {
@@ -46,61 +66,48 @@
             color: var(--text-sidebar);
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05);
             transition: transform 0.3s ease;
-            justify-content: space-between;
-        }
-
-        .sidebar-header {
-            flex: 0;
-        }
-
-        .nav-items {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .sidebar-footer {
-            margin-top: auto;
-            padding-top: 20px;
-            border-top: 1px solid #334155;
+            position: relative;
+            z-index: 10;
         }
 
         .sidebar h2 {
-            font-size: 1.5rem;
-            margin-bottom: 2rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 2.5rem;
             color: #fff;
             display: flex;
             align-items: center;
-            gap: 10px;
-        }
-
-        .nav-items {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            gap: 12px;
+            letter-spacing: -0.025em;
         }
 
         .nav-item {
             padding: 12px 16px;
             border-radius: 8px;
             cursor: pointer;
-            transition: background 0.2s, color 0.2s;
-            color: #cbd5e1;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #94a3b8;
+            /* Slate-400 */
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
         }
 
-        .nav-item:hover,
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: #f1f5f9;
+        }
+
         .nav-item.active {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: var(--primary);
             color: #fff;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
         }
 
         /* Main Content */
@@ -165,99 +172,120 @@
         }
 
         /* Cards */
+        /* Cards */
         .card {
             background: var(--bg-card);
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: var(--shadow-md);
             margin-bottom: 24px;
-            border: 1px solid var(--border-color);
+            border: 1px solid rgba(226, 232, 240, 0.6);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-lg);
         }
 
         .card h3 {
             margin-top: 0;
             font-size: 1.25rem;
+            font-weight: 600;
             color: var(--text-main);
             margin-bottom: 1.5rem;
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 1rem;
+            letter-spacing: -0.01em;
         }
 
         /* Forms */
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         }
 
         label {
             display: block;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             font-weight: 500;
             font-size: 0.9rem;
-            color: var(--text-main);
+            color: #475569;
+            /* Slate-600 */
         }
 
         input[type="text"],
         input[type="password"],
         input[type="email"],
         input[type="number"],
+        input[type="file"],
         select,
         textarea {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
+            padding: 12px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
             font-family: inherit;
             font-size: 0.95rem;
-            transition: border-color 0.2s;
+            color: var(--text-main);
+            background-color: #fff;
+            transition: all 0.2s;
             box-sizing: border-box;
         }
 
-        input[type="text"]:focus,
-        input[type="password"]:focus,
-        input[type="email"]:focus,
-        input[type="number"]:focus,
+        input:focus,
         select:focus,
         textarea:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
         }
 
         /* Buttons */
         .btn-group {
             display: flex;
-            gap: 12px;
-            margin-top: 20px;
+            gap: 16px;
+            margin-top: 24px;
+            flex-wrap: wrap;
         }
 
         button {
-            padding: 10px 20px;
-            border-radius: 6px;
+            padding: 12px 24px;
+            border-radius: 8px;
             border: none;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:active {
+            transform: scale(0.98);
         }
 
         .btn-primary {
             background-color: var(--primary);
             color: white;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
         }
 
         .btn-primary:hover {
             background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 8px -1px rgba(79, 70, 229, 0.3);
         }
 
         .btn-secondary {
-            background-color: #fff;
+            background-color: white;
             border: 1px solid var(--border-color);
             color: var(--text-main);
         }
 
         .btn-secondary:hover {
+            border-color: #94a3b8;
             background-color: #f8fafc;
-            border-color: #cbd5e1;
         }
 
         .btn-danger {
@@ -267,6 +295,7 @@
 
         .btn-danger:hover {
             background-color: #dc2626;
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
         }
 
         .btn-success {
@@ -275,7 +304,9 @@
         }
 
         .btn-success:hover {
-            background-color: #16a34a;
+            background-color: #059669;
+            /* Emerald-600 */
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
         }
 
         /* Internship Items */
@@ -437,6 +468,23 @@
         .modal-close:hover {
             color: var(--text-main);
         }
+
+        .insight-badge {
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .insight-badge.success {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .insight-badge.warning {
+            background: #fef3c7;
+            color: #b45309;
+        }
     </style>
 </head>
 
@@ -450,6 +498,10 @@
                 <div class="nav-items">
                     <div class="nav-item active" onclick="switchView('corporate')" id="nav-corporate">
                         <span>Corporate</span>
+                    </div>
+                    <div class="nav-item hidden" onclick="switchView('corporate-applications')"
+                        id="nav-corporate-applications">
+                        <span>Applications</span>
                     </div>
                     <div class="nav-item" onclick="switchView('placement')" id="nav-placement">
                         <span>Placement</span>
@@ -547,6 +599,17 @@
                 </div>
             </div>
 
+            <!-- CORPORATE APPLICATIONS VIEW -->
+            <div id="corporate-applications-view" class="view-section">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3 style="margin:0; border:none;">Internship Applications</h3>
+                        <button class="btn-secondary" onclick="loadCorporateApplications()">Refresh</button>
+                    </div>
+                    <div id="corp-apps-list"></div>
+                </div>
+            </div>
+
             <!-- PLACEMENT VIEW -->
             <div id="placement-view" class="view-section">
                 <div id="place-login-section" class="card">
@@ -585,7 +648,8 @@
                                     onclick="loadApprovedInternshipsForPlacement()">Refresh</button>
                             </div>
                             <div id="place-approved-list">
-                                <p style="color:var(--text-muted); text-align:center;">No approved internships yet.</p>
+                                <p style="color:var(--text-muted); text-align:center;">No approved internships yet.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -621,7 +685,9 @@
                 </div>
             </div>
 
-            <!-- ADMIN VIEW -->
+
+
+            <!-- ADMIN VIEW (MAIN) -->
             <div id="admin-view" class="view-section">
                 <div id="admin-login-section" class="card">
                     <h3>Admin Panel Access</h3>
@@ -903,6 +969,18 @@
                 </div>
             </div>
 
+            <!-- Student Fields -->
+            <div id="student-fields" class="hidden"
+                style="background:#f8fafc; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #e2e8f0;">
+                <div class="form-group">
+                    <label>Department <span style="color: red;">*</span></label>
+                    <select id="new-stud-dept">
+                        <option value="">Select Department...</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+            </div>
+
             <div class="btn-group">
                 <button class="btn-primary" onclick="saveNewUser()">Create User</button>
                 <button class="btn-secondary" onclick="closeAddUserModal()">Cancel</button>
@@ -928,6 +1006,70 @@
         </div>
     </div>
 
+    </div>
+
+    <!-- Department Analytics Modal -->
+    <div id="dept-analytics-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 900px; width: 90%;">
+            <div class="modal-header">
+                <h3>📊 Department Analytics</h3>
+                <button class="modal-close" onclick="closeDeptAnalyticsModal()">&times;</button>
+            </div>
+            <div id="dept-analytics-content" style="padding: 10px;">
+                <!-- Content populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Apply Modal -->
+    <div id="apply-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📝 Apply for Internship</h3>
+                <button class="modal-close" onclick="closeApplyModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Resume (PDF/Doc) <span style="color: red;">*</span></label>
+                <input type="file" id="apply-resume" accept=".pdf,.doc,.docx" required>
+            </div>
+            <div class="form-group">
+                <label>GitHub Profile</label>
+                <input type="url" id="apply-github" placeholder="https://github.com/username"
+                    pattern="https?://(www\.)?github\.com/.+"
+                    title="Please enter a valid GitHub URL (e.g., https://github.com/username)">
+                <small style="color: #64748b; display: block; margin-top: 4px;">Must be a GitHub URL</small>
+            </div>
+            <div class="form-group">
+                <label>LinkedIn Profile</label>
+                <input type="url" id="apply-linkedin" placeholder="https://linkedin.com/in/username"
+                    pattern="https?://(www\.)?linkedin\.com/(in|company)/.+"
+                    title="Please enter a valid LinkedIn URL (e.g., https://linkedin.com/in/username)">
+                <small style="color: #64748b; display: block; margin-top: 4px;">Must be a LinkedIn URL</small>
+            </div>
+            <div class="btn-group">
+                <button class="btn-primary" onclick="submitApplication()">Submit Application</button>
+                <button class="btn-secondary" onclick="closeApplyModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Applicants View Modal -->
+    <div id="applicants-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3>Internship Applicants</h3>
+                <button class="modal-close" onclick="closeApplicantsModal()">&times;</button>
+            </div>
+            <div id="applicants-modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <!-- Applicants table will be loaded here -->
+                <div style="text-align:center; color:#64748b;">Loading...</div>
+            </div>
+            <div class="btn-group" style="justify-content: flex-end;">
+                <button class="btn-secondary" onclick="closeApplicantsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Auto-detect environment and use appropriate API URL
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -944,6 +1086,7 @@
         let departmentsLoaded = false;
         let myInternships = [];
         let editingInternshipId = null;
+        let applyingInternshipId = null;
         let autoRefreshInterval = null;
         let currentAdminSubView = 'dashboard';
         let currentPlacementSubView = 'pending';
@@ -972,13 +1115,17 @@
                 loadDataForView(viewName);
             }
 
-            autoRefreshInterval = setInterval(() => loadDataForView(viewName), 5000);
+            // Auto-refresh disabled to prevent modal closing
+            // autoRefreshInterval = setInterval(() => loadDataForView(viewName), 5000);
         }
 
         function loadDataForView(viewName) {
             if (viewName === 'corporate') {
                 loadDepartments('corporate');
                 if (tokens.corporate) loadMyInternships();
+            }
+            if (viewName === 'corporate-applications' && tokens.corporate) {
+                loadCorporateApplications();
             }
             if (viewName === 'placement' && tokens.placement) {
                 if (currentPlacementSubView === 'pending') loadPendingInternships();
@@ -988,8 +1135,8 @@
             if (viewName === 'admin' && tokens.admin) {
                 if (currentAdminSubView === 'dashboard') loadAdminDashboard();
                 else if (currentAdminSubView === 'users') loadAdminUsers();
-                else if (currentAdminSubView === 'internships') loadAdminInternships();
                 else if (currentAdminSubView === 'departments') loadAdminDepartments();
+                else if (currentAdminSubView === 'internships') loadAdminInternships();
             }
         }
 
@@ -1140,13 +1287,20 @@
 
         async function loadAdminDepartments() {
             try {
-                const depts = await apiRequest('/departments', 'GET', null, 'admin'); // Reusing public list
-                document.getElementById('admin-departments-list').innerHTML = depts.map(d => `
-                    <tr style="border-bottom:1px solid #e2e8f0;">
+                const depts = await apiRequest('/admin/departments', 'GET', null, 'admin');
+                const listEl = document.getElementById('admin-departments-list');
+                if (!listEl) return;
+
+                listEl.innerHTML = depts.map(d => `
+                    <tr style="border-bottom:1px solid #e2e8f0; cursor:pointer; transition:background 0.2s;" 
+                        onmouseover="this.style.background='#f1f5f9'" 
+                        onmouseout="this.style.background='transparent'"
+                        onclick="showDepartmentAnalytics('${d.id}')">
                          <td style="padding:12px; font-weight:500;">${d.name}</td>
                          <td style="padding:12px; color:#64748b; font-family:monospace;">${d.id}</td>
                          <td style="padding:12px;">
-                            <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteDepartment('${d.id}')">Delete</button>
+                            <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" 
+                                onclick="event.stopPropagation(); deleteDepartment('${d.id}')">Delete</button>
                          </td>
                     </tr>
                 `).join('');
@@ -1178,9 +1332,209 @@
         async function deleteDepartment(id) {
             if (!confirm('Delete this department?')) return;
             try {
-                await apiRequest(`/departments/${id}`, 'DELETE', null, 'admin');
-                loadAdminDepartments();
             } catch (e) { alert(e.message); }
+        }
+
+        // Global chart instances for department analytics to handle cleanup
+        let deptStatusChart = null;
+        let deptFunnelChart = null;
+
+        async function showDepartmentAnalytics(deptId) {
+            const modal = document.getElementById('dept-analytics-modal');
+            const content = document.getElementById('dept-analytics-content');
+
+            // Modern Loading State
+            content.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px;">
+                    <div class="loader" style="border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+                    <p style="margin-top:15px; color:var(--text-muted);">Fetching Department Insights...</p>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+
+            try {
+                const analytics = await apiRequest(`/admin/departments/${deptId}/analytics`, 'GET', null, 'admin');
+                const appsByStatus = analytics.applications_by_status || {};
+
+                // --- INSIGHTS GENERATION ---
+                let insightHtml = '';
+                if (analytics.success_rate > 75) {
+                    insightHtml = `<div class="insight-badge success">🌟 Top Performing Department</div>`;
+                } else if (analytics.success_rate < 30 && analytics.total_applications > 5) {
+                    insightHtml = `<div class="insight-badge warning">⚠️ Attention Needed: Low Conversion</div>`;
+                }
+
+                // --- PREMIUM UI LAYOUT ---
+                content.innerHTML = `
+                    <div id="analytics-report-area">
+                        <div style="margin-bottom:25px; text-align:center;">
+                            <div style="display:flex; justify-content:center; gap:10px; align-items:center; margin-bottom:10px;">
+                                <h2 style="font-size:1.8rem; margin:0; color:var(--text-dark); background: linear-gradient(135deg, var(--primary), #4f46e5); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">${analytics.department}</h2>
+                                ${insightHtml}
+                            </div>
+                            <p style="color:var(--text-muted); margin-top:5px; font-weight:500;">Performance & Engagement Overview</p>
+                            <p style="font-size:0.85rem; color:#94a3b8;">Report Generated: ${new Date().toLocaleDateString()}</p>
+                        </div>
+                        
+                        <!-- KPI CARDS -->
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:15px; margin-bottom:30px;">
+                            <div class="stat-card" style="position:relative; overflow:hidden;">
+                                <div style="position:absolute; top:-10px; right:-10px; font-size:4rem; opacity:0.05; transform:rotate(-15deg);">👥</div>
+                                <h3 style="font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px; opacity:0.8;">Total Students</h3>
+                                <div class="number" style="font-size:2rem;">${analytics.total_students}</div>
+                            </div>
+                            <div class="stat-card" style="position:relative; overflow:hidden;">
+                                <div style="position:absolute; top:-10px; right:-10px; font-size:4rem; opacity:0.05; transform:rotate(-15deg);">📄</div>
+                                <h3 style="font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px; opacity:0.8;">Applications</h3>
+                                <div class="number" style="font-size:2rem;">${analytics.total_applications}</div>
+                            </div>
+                            <div class="stat-card" style="position:relative; overflow:hidden;">
+                                <div style="position:absolute; top:-10px; right:-10px; font-size:4rem; opacity:0.05; transform:rotate(-15deg);">✅</div>
+                                <h3 style="font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px; opacity:0.8;">Placements</h3>
+                                <div class="number" style="color:#10b981; font-size:2rem;">${analytics.total_accepted}</div>
+                            </div>
+                            <div class="stat-card" style="position:relative; overflow:hidden;">
+                                <div style="position:absolute; top:-10px; right:-10px; font-size:4rem; opacity:0.05; transform:rotate(-15deg);">🚀</div>
+                                <h3 style="font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px; opacity:0.8;">Success Rate</h3>
+                                <div class="number" style="color:${analytics.success_rate >= 50 ? '#10b981' : (analytics.success_rate >= 20 ? '#f59e0b' : '#ef4444')}; font-size:2rem;">
+                                    ${analytics.success_rate}%
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CHARTS SECTION -->
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                            <!-- Status Distribution -->
+                            <div class="card" style="box-shadow:none; border:1px solid #e2e8f0; padding:15px; display:flex; flex-direction:column; align-items:center;">
+                                <h4 style="margin:0 0 15px 0; color:var(--text-dark);">Application Status</h4>
+                                <div style="width:100%; height:200px; position:relative;">
+                                    <canvas id="deptStatusChart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Funnel / Activity -->
+                            <div class="card" style="box-shadow:none; border:1px solid #e2e8f0; padding:15px; display:flex; flex-direction:column; align-items:center;">
+                                <h4 style="margin:0 0 15px 0; color:var(--text-dark);">Conversion Funnel</h4>
+                                <div style="width:100%; height:200px; position:relative;">
+                                    <canvas id="deptFunnelChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ACTION BAR -->
+                    <div style="border-top:1px solid #e2e8f0; margin-top:20px; padding-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+                        <button class="btn-secondary" onclick="closeDeptAnalyticsModal()">Close</button>
+                        <button class="btn-primary" onclick="downloadDeptReport('${analytics.department}')">⬇ Download Report</button>
+                    </div>
+                `;
+
+                // --- RENDER CHARTS ---
+
+                // 1. Status Chart (Doughnut)
+                if (deptStatusChart) deptStatusChart.destroy();
+                const statusCtx = document.getElementById('deptStatusChart').getContext('2d');
+
+                // Prepare Data
+                const labels = Object.keys(appsByStatus);
+                const dataPoints = Object.values(appsByStatus);
+                const bgColors = labels.map(status => {
+                    if (status.includes('ACCEPTED')) return '#10b981'; // Green
+                    if (status.includes('REJECTED')) return '#ef4444'; // Red
+                    if (status.includes('PENDING')) return '#f59e0b'; // Amber
+                    return '#6366f1'; // Default Indigo
+                });
+
+                deptStatusChart = new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels.length ? labels : ['No Data'],
+                        datasets: [{
+                            data: dataPoints.length ? dataPoints : [1], // Dummy for empty
+                            backgroundColor: dataPoints.length ? bgColors : ['#e2e8f0'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } }
+                        },
+                        cutout: '65%'
+                    }
+                });
+
+                // 2. Funnel Chart (Bar)
+                if (deptFunnelChart) deptFunnelChart.destroy();
+                const funnelCtx = document.getElementById('deptFunnelChart').getContext('2d');
+
+                deptFunnelChart = new Chart(funnelCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Applied', 'Placed'],
+                        datasets: [{
+                            label: 'Students',
+                            data: [analytics.total_applications, analytics.total_accepted],
+                            backgroundColor: ['#6366f1', '#10b981'],
+                            borderRadius: 6,
+                            barThickness: 40
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { display: false } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+
+            } catch (e) {
+                console.error(e);
+                content.innerHTML = `
+                    <div style="color:#ef4444; text-align:center; padding:40px;">
+                        <h3 style="margin:0;">Failed to Load Analytics</h3>
+                        <p>Please check your connection or server logs.</p>
+                        <button class="btn-secondary" onclick="closeDeptAnalyticsModal()" style="margin-top:10px;">Close</button>
+                    </div>`;
+            }
+        }
+
+        function downloadDeptReport(deptName) {
+            const element = document.getElementById('analytics-report-area');
+            const opt = {
+                margin: 0.5,
+                filename: `${deptName}_Analytics_Report.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+
+            // Show toast or loading
+            const btn = document.querySelector('#dept-analytics-content .btn-primary');
+            const originalText = btn.innerText;
+            btn.innerText = 'Generating PDF...';
+            btn.disabled = true;
+
+            try {
+                html2pdf().set(opt).from(element).save();
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function closeDeptAnalyticsModal() {
+            document.getElementById('dept-analytics-modal').classList.add('hidden');
+            // Cleanup charts
+            if (deptStatusChart) deptStatusChart.destroy();
+            if (deptFunnelChart) deptFunnelChart.destroy();
+            deptStatusChart = null;
+            deptFunnelChart = null;
         }
 
         // --- Admin Add User Logic ---
@@ -1198,13 +1552,30 @@
             document.getElementById('add-user-modal').classList.add('hidden');
         }
 
-        function toggleCorporateFields() {
+        async function toggleCorporateFields() {
             const role = document.getElementById('new-user-role').value;
             const corpFields = document.getElementById('corporate-fields');
+            const studentFields = document.getElementById('student-fields');
+
+            // Hide all first
+            if (corpFields) corpFields.classList.add('hidden');
+            if (studentFields) studentFields.classList.add('hidden');
+
             if (role === 'CORPORATE') {
-                corpFields.classList.remove('hidden');
-            } else {
-                corpFields.classList.add('hidden');
+                if (corpFields) corpFields.classList.remove('hidden');
+            } else if (role === 'STUDENT') {
+                if (studentFields) {
+                    studentFields.classList.remove('hidden');
+                    // Load departments if needed
+                    const deptSelect = document.getElementById('new-stud-dept');
+                    if (deptSelect && deptSelect.options.length <= 1) {
+                        try {
+                            const depts = await apiRequest('/admin/departments', 'GET', null, 'admin');
+                            deptSelect.innerHTML = '<option value="">Select Department...</option>' +
+                                depts.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+                        } catch (e) { console.error('Failed to load departments', e); }
+                    }
+                }
             }
         }
 
@@ -1230,6 +1601,13 @@
                 }
                 payload.company_name = company;
                 payload.hr_name = hr;
+            } else if (role === 'STUDENT') {
+                const deptId = document.getElementById('new-stud-dept').value;
+                // Make department optional or required? User asked for student to have department.
+                // If required:
+                if (deptId) {
+                    payload.department_id = deptId;
+                }
             }
 
             try {
@@ -1291,7 +1669,11 @@
         }
 
         async function apiRequest(endpoint, method = 'GET', body = null, role = null) {
-            const headers = { 'Content-Type': 'application/json' };
+            const headers = {};
+            if (!(body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+            }
+
             if (role && tokens[role]) {
                 headers['Authorization'] = `Bearer ${tokens[role]}`;
             }
@@ -1299,7 +1681,7 @@
             const opts = {
                 method,
                 headers,
-                body: body ? JSON.stringify(body) : null
+                body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : null
             };
 
             try {
@@ -1383,6 +1765,12 @@
 
             if (actionSec) actionSec.classList.add('hidden');
 
+            // Hide Applications nav if logging out from corporate
+            if (role === 'corporate') {
+                const appsNav = document.getElementById('nav-corporate-applications');
+                if (appsNav) appsNav.classList.add('hidden');
+            }
+
             log(`${role.toUpperCase()} Logged Out/Expired.`);
 
             // Restore Sidebar - show all nav items
@@ -1423,7 +1811,7 @@
 
         function isolateSidebar(role) {
             // Hide all first
-            ['corporate', 'placement', 'student', 'admin'].forEach(r => {
+            ['corporate', 'corporate-applications', 'placement', 'student', 'admin'].forEach(r => {
                 const el = document.getElementById(`nav-${r}`);
                 if (el) el.classList.add('hidden');
             });
@@ -1438,6 +1826,9 @@
                 switchPlacementSubView('pending');
             } else {
                 document.getElementById(`nav-${role}`).classList.remove('hidden');
+                if (role === 'corporate') {
+                    document.getElementById('nav-corporate-applications').classList.remove('hidden');
+                }
             }
 
             // Show Logout
@@ -1516,6 +1907,92 @@
                 log(`Posted Internship: ${data.title}`);
             }
             loadMyInternships();
+        }
+
+        async function loadCorporateApplications() {
+            // First load internships to show list
+            const internships = await apiRequest('/internships/my', 'GET', null, 'corporate');
+
+            document.getElementById('corp-apps-list').innerHTML = internships.map(i => `
+                <div class="internship-item">
+                    <div class="item-header">
+                        <span class="item-title">${i.title}</span>
+                        <span class="status-badge status-${i.status}">${i.status}</span>
+                    </div>
+                    <div style="margin-top:10px;">
+                         <button class="btn-primary" onclick="viewApplicants('${i.id}')">View Applicants</button>
+                    </div>
+                    <div id="applicants-container-${i.id}" class="hidden" style="margin-top:15px; border-top:1px dashed #e2e8f0; padding-top:15px;">
+                        <div style="text-align:center; color:#64748b;">Loading...</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function ensureAbsoluteUrl(url) {
+            if (!url) return '#';
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                return url;
+            }
+            return 'https://' + url;
+        }
+
+        function ensureAbsoluteUrl(url) {
+            if (!url) return '#';
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                return url;
+            }
+            return 'https://' + url;
+        }
+
+        async function viewApplicants(internshipId) {
+            const container = document.getElementById(`applicants-container-${internshipId}`);
+            if (!container.classList.contains('hidden')) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            try {
+                const apps = await apiRequest(`/internships/${internshipId}/applications`, 'GET', null, 'corporate');
+
+                if (apps.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; color:#64748b;">No applications yet.</div>';
+                    return;
+                }
+
+                container.innerHTML = `
+                    <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                        <thead>
+                            <tr style="text-align:left; background:#f8fafc; color:#64748b;">
+                                <th style="padding:8px;">Student</th>
+                                <th style="padding:8px;">Email</th>
+                                <th style="padding:8px;">Resume</th>
+                                <th style="padding:8px;">Links</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${apps.map(a => `
+                                <tr style="border-bottom:1px solid #f1f5f9;">
+                                    <td style="padding:8px;">${a.student.name}</td>
+                                    <td style="padding:8px;">${a.student.email}</td>
+                                    <td style="padding:8px;"><a href="${a.resume_link}" target="_blank" style="color:#2563eb;">View Resume</a></td>
+                                    <td style="padding:12px; border-bottom:1px solid #f1f5f9;">
+                                        <div style="display:flex; gap:8px;">
+                                            ${a.github_link ? `<a href="${ensureAbsoluteUrl(a.github_link)}" target="_blank" title="GitHub">GitHub</a>` : ''}
+                                            ${a.linkedin_link ? `<a href="${ensureAbsoluteUrl(a.linkedin_link)}" target="_blank" title="LinkedIn">LinkedIn</a>` : ''}
+                                            ${!a.github_link && !a.linkedin_link ? '<span style="color:#94a3b8;">-</span>' : ''}
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+
+            } catch (e) {
+                container.innerHTML = `<div style="color:red;">Failed to load applicants: ${e.message}</div>`;
+            }
         }
 
         async function loadMyInternships() {
@@ -1828,10 +2305,54 @@
             <div class="internship-item">
                 ${renderInternshipContent(i)}
                 <div class="btn-group">
-                    <button class="btn-primary" disabled>Apply Now (Coming Soon)</button>
+                    ${i.has_applied
+                    ? '<span class="status-badge" style="background:#d1fae5; color:#065f46; border: 1px solid #6ee7b7; padding: 10px 20px; font-size: 0.95rem; border-radius: 6px; display: inline-block;">✓ Already Applied</span>'
+                    : `<button class="btn-primary" onclick="openApplyModal('${i.id}')">Apply Now</button>`
+                }
                 </div>
             </div>
         `).join('');
+        }
+
+        /* --- APPLY MODAL ACTIONS --- */
+        function openApplyModal(id) {
+            applyingInternshipId = id;
+            document.getElementById('apply-resume').value = '';
+            document.getElementById('apply-github').value = '';
+            document.getElementById('apply-linkedin').value = '';
+            document.getElementById('apply-modal').classList.remove('hidden');
+        }
+
+        function closeApplyModal() {
+            document.getElementById('apply-modal').classList.add('hidden');
+            applyingInternshipId = null;
+        }
+
+        async function submitApplication() {
+            if (!applyingInternshipId) return;
+
+            const resumeInput = document.getElementById('apply-resume');
+            const github = document.getElementById('apply-github').value.trim();
+            const linkedin = document.getElementById('apply-linkedin').value.trim();
+
+            if (resumeInput.files.length === 0) {
+                alert('Please upload your resume.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('resume', resumeInput.files[0]);
+            if (github) formData.append('github_link', github);
+            if (linkedin) formData.append('linkedin_link', linkedin);
+
+            try {
+                await apiRequest(`/internships/${applyingInternshipId}/apply`, 'POST', formData, 'student');
+                log('Application Submitted Successfully!');
+                alert('Application Submitted Successfully!');
+                closeApplyModal();
+            } catch (e) {
+                // Error handling is done in apiRequest, but we can catch here if needed
+            }
         }
 
         /* --- HELPERS --- */
