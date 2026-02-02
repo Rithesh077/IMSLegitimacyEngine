@@ -1,12 +1,15 @@
 # System Integration & Architecture Guide
 
 ## 1. Overview
-The **Company Legitimacy Verification Pipeline (V2)** is a **Signal-Based System**. Instead of relying on a single binary "Verified" flag, it aggregates multiple trust signals from public web sources to calculate a `Trust Score`.
+The **Company Legitimacy Verification Pipeline (V2)** is a **Signal-Based System**. Instead of relying on a single binary "Verified" flag, it aggregates multiple trust signals from public web sources **and People Data Labs (PDL)** to calculate a `Trust Score`.
 
 ### Core Logic
-*   **Dual Search Strategy**: Verifies entity existence using both `Name + ID` (High Confidence) and `Name Only` (Fallback) queries.
+*   **Enhanced PDL Search**: Prioritizes unique identifiers for high-accuracy enrichment:
+    1.  **LinkedIn URL** (Highest Confidence)
+    2.  **Website Domain**
+    3.  **Company Name** (with auto-cleaning fallback)
+*   **Dual Registry Search**: Verifies entity existence using both `Name + ID` (High Confidence) and `Name Only` (Broad) queries.
 *   **Fuzzy Matching**: Uses Token-Set Ratio to handle name variations (e.g., "Google" vs "Google India Pvt Ltd").
-*   **Granular Checks**: Returns specific `YES/NO` signals for each trusted domain (Zauba, Tofler, OpenCorporates, etc.).
 
 ---
 
@@ -20,28 +23,27 @@ class CompanyInput(BaseModel):
     country: str           # e.g., "India"
     registry_id: str       # e.g., "U65929KA2017PLC100661"
     
-    # NEW OPTIONAL FIELDS
-    linkedin_url: Optional[str] = None
+    # CRITICAL EXTENDED FIELDS
+    linkedin_url: Optional[str] = None  # e.g., "https://www.linkedin.com/company/zerodha"
     website_urls: Optional[List[str]] = []
 ```
 
 ### Output Schema (`CredibilityAnalysis`)
-The pipeline returns a rich analysis object. **Do not destructively parse `details` keys unless specified.**
+The pipeline returns a rich analysis object.
 ```python
 {
-    "verification_status": "Verified",  # Verified | Unverified
+    "verification_status": "Verified",  # Verified | Pending
     "trust_score": 90.0,                # 0-100
     "trust_tier": "High",               # High | Medium | Low
     "details": {
+        "pdl_data": { ... },            # Rich profile from People Data Labs
         "signals": {
             "registry_link_found": True,
             "registry_breakdown": {
-                "zaubacorp.com": True,
-                "tofler.in": False,
-                "mca.gov.in": True
+                "zaubacorp.com": { "found": True, "verification_method": "strict_id" },
+                "peopledatalabs.com": { "found": True }
             },
-            "linkedin_verified": True,
-            "website_content_match": True
+            "linkedin_verified": True
         }
     }
 }
@@ -49,46 +51,24 @@ The pipeline returns a rich analysis object. **Do not destructively parse `detai
 
 ---
 
-## 3. Caching Strategy (Redis)
+## 3. Universal Queuing Strategy
 
-We utilize **Redis** to cache expensive search operations. This significantly reduces latency and API costs (or scraping risks) for repeated lookups.
+To support downstream tasks (like Sentiment Analysis or Manual Review), the pipeline now **Universal Queues** data.
 
-### Implementation Reference
-*   **Location**: `backend/app/engine/lookup_engine.py` -> `check_registry_presence`
-*   **Key Format**: `registry:signal:{country}:{id}:{name}`
-*   **TTL**: 86400 seconds (24 Hours)
-
-```python
-# Reference Code Snippet
-async def check_registry_presence(...):
-    # 1. READ THROUGH
-    cached_data = await redis_client.get(cache_key)
-    if cached_data: return json.loads(cached_data)
-
-    # 2. FETCH & WRITE BACK
-    breakdown = provider.check_registry_signal(...)
-    await redis_client.set(cache_key, json.dumps(breakdown), ttl=86400)
-    return breakdown
-```
-
-### Infrastructure Recommendation
-*   **Development**: Use a local Redis instance (Docker or Native Windows Service).
-    *   *Port*: 6379 (Default)
-    *   *Env*: `REDIS_HOST=localhost`
-*   **Production**: We strongly recommend a **Managed Redis Service** (e.g., **Aiven for Redis** or AWS ElastiCache).
-    *   *Why?* Persistence, High Availability, and Auto-Scaling without maintenance overhead.
-    *   *Setup*: Update `.env` with `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD` provided by Aiven.
+*   **Mechanism**: All pipeline runs, regardless of `Verified` or `Pending` status, are pushed to the Redis queue.
+*   **Queue Key**: `queue:sentiment_analysis`
+*   **Payload**: Includes full `match_details`, `pdl_data`, and `score`.
 
 ---
 
-## 4. Codebase Structure (Cleaned for Handover)
+## 4. Codebase Structure (Optimized)
 
 | Component | Responsibility |
 | :--- | :--- |
 | `pipeline_orchestrator.py` | **Controller**. Manages flow, calculates scores, aggregates signals. |
-| `lookup_engine.py` | **Router**. Handles Caching (Redis) and selects Country Providers. |
-| `providers.py` | **Logic**. Implements the Dual Search Strategy for Registry verification. |
-| `scraper.py` | **Utility**. Robust Web Search, Retries, and Fuzzy Matching logic. |
-| `verify_cli.py` | **Testing**. CLI tool for rapid manual testing of the pipeline. |
+| `lookup_engine.py` | **Router**. Handles Caching (Redis) and selects Providers. |
+| `pdl_provider.py` | **Enrichment**. Interfaces with People Data Labs API (LinkedIn/Web/Name search). |
+| `providers.py` | **Registry**. Implements Dual Search for Zauba/Tofler/Opencorporates. |
+| `verify_cli.py` | **CLI**. "Hacker-style" tool for rapid testing and admin override. |
 
-*(Legacy files `registry_verifier.py`, `ml_verifier.py` have been removed.)*
+*(Legacy files and verbose comments have been aggressively cleaned.)*

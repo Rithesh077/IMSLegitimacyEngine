@@ -19,52 +19,52 @@ class SearchBasedProvider(RegistryProvider):
     def verify_by_id(self, registration_id: str, company_name: str) -> Optional[Dict[str, Any]]:
         return None
 
-    def check_registry_signal(self, registration_id: str, company_name: str) -> Dict[str, bool]:
+    def check_registry_signal(self, registration_id: str, company_name: str) -> Dict[str, Any]:
         """
-        Verifies the company's presence across trusted registry domains.
-        
-        Strategy:
-        1. Attempt strict match: "{domain} {name} {id}" -> Requires ID match + Fuzzy Name > 60.
-        2. Fallback check: "{domain} {name}" -> Requires Fuzzy Name > 70.
+        verifies company presence across trusted domains using dual-query strategy.
+        returns: { domain: { found: bool, matches: list } }
         """
         results = {}
         clean_id = registration_id.lower().strip()
-        logger.info(f"Checking registry signals for ID: {registration_id}")
+        logger.info(f"checking registry: {registration_id}")
         
         for domain in self.TRUSTED_DOMAINS:
-            found = False
+            res = {
+                "found": False,
+                "verification_method": None,
+                "search_results": []
+            }
             
-            # 1. Primary Check: Name + ID
-            query_1 = f'{domain} {company_name} {registration_id}'
-            logger.info(f"Checking {domain} (Primary)...")
+            # 1. strict query (name + id)
+            q1 = f'{domain} {company_name} {registration_id}'
+            found1, data1 = self._check_query(q1, domain, company_name, clean_id, strict_id=True)
+            res["search_results"].extend(data1)
             
-            try:
-                if self._check_query(query_1, domain, company_name, clean_id, strict_id=True):
-                    found = True
-            except Exception as e:
-                logger.error(f"Primary check failed for {domain}: {e}")
+            if found1:
+                res["found"] = True
+                res["verification_method"] = "strict_id"
 
-            # 2. Fallback Check: Name only
-            if not found:
-                query_2 = f'{domain} {company_name}'
-                logger.info(f"Checking {domain} (Fallback)...")
-                try:
-                    if self._check_query(query_2, domain, company_name, clean_id, strict_id=False):
-                        found = True
-                except Exception as e:
-                    logger.error(f"Fallback check failed for {domain}: {e}")
+            # 2. broad query (name only)
+            # running broad search to capture all context even if strict failed
+            q2 = f'{domain} {company_name}'
+            found2, data2 = self._check_query(q2, domain, company_name, clean_id, strict_id=False)
+            res["search_results"].extend(data2)
             
-            results[domain] = found
-            logger.info(f"Result for {domain}: {'FOUND' if found else 'NOT FOUND'}")
+            if not res["found"] and found2:
+                res["found"] = True
+                res["verification_method"] = "name_match"
+            
+            results[domain] = res
             
         return results
 
-    def _check_query(self, query: str, domain: str, expected_name: str, expected_id: str, strict_id: bool) -> bool:
+    def _check_query(self, query: str, domain: str, expected_name: str, expected_id: str, strict_id: bool) -> tuple[bool, List[Dict]]:
         """
         Parses search results to confirm a match.
-        strict_id: If True, mandates ID presence in the snippet.
+        Returns: (is_match, list_of_results)
         """
-        results = self.scraper.search_web(query, num_results=2)
+        results = self.scraper.search_web(query, num_results=5) # Increased to 5 per user req
+        is_match = False
         
         for res in results:
             url = res.get('link', '')
@@ -79,14 +79,14 @@ class SearchBasedProvider(RegistryProvider):
                     id_match = expected_id in title or expected_id in snippet
                     if id_match and name_score > 60:
                         logger.info(f"  -> Match Confirmed: ID present, Name Score: {name_score}")
-                        return True
+                        is_match = True
                 else:
                     # Stricter Name Match required if ID is absent
                     if name_score > 70:
                         logger.info(f"  -> Match Confirmed: Name Score: {name_score}")
-                        return True
+                        is_match = True
                         
-        return False
+        return is_match, results
         
     def verify_by_name(self, name: str) -> List[Dict[str, Any]]:
         return []

@@ -56,6 +56,25 @@ class RedisClient:
             logger.error(f"Redis SET error: {e}")
             return False
 
+    async def rpush(self, key: str, value: str) -> bool:
+        if not self._redis:
+            return False
+        try:
+            await self._redis.rpush(key, value)
+            return True
+        except Exception as e:
+            logger.error(f"Redis RPUSH error: {e}")
+            return False
+
+    async def lpop(self, key: str) -> Optional[str]:
+        if not self._redis:
+            return None
+        try:
+            return await self._redis.lpop(key)
+        except Exception as e:
+            logger.error(f"Redis LPOP error: {e}")
+            return None
+
     async def close(self):
         if self._redis:
             await self._redis.close()

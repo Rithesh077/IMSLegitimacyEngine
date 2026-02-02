@@ -2,106 +2,106 @@ import sys
 import os
 import asyncio
 import logging
+import json
+from datetime import datetime
+from dotenv import load_dotenv
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# ... (keep load_dotenv blocks)
 
-from app.engine.pipeline_orchestrator import PipelineOrchestrator
-from app.schemas.company import CompanyInput
-from app.core.redis import redis_client
-
-# Configure simplified logging output
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+# ...
 
 async def main():
-    print("\n=== Company Legitimacy Verification Tool (CLI) ===")
-    print("Type 'exit' or 'quit' to terminate the session.\n")
+    print("\n=== company legitimacy verification cli ===")
+    print("type 'exit' to quit.\n")
 
-    # Connect to Redis
-    try:
-        await redis_client.connect()
+    # connect redis
+    try: await redis_client.connect()
     except Exception as e:
-        print(f"Warning: Redis connection failed ({e}). Caching will be disabled.")
+        print(f"warn: redis failed ({e}). caching disabled.")
 
     orchestrator = PipelineOrchestrator()
 
     while True:
         try:
-            name = input("\nCompany Name: ").strip()
-            if name.lower() in ['exit', 'quit']:
-                print("Exiting...")
-                break
-            if not name:
-                print("Error: Company name is required.")
-                continue
+            name = input("\ncompany name: ").strip()
+            if name.lower() in ['exit', 'quit']: break
+            if not name: continue
 
-            country = input("Country (e.g. India, USA): ").strip()
-            if not country:
-                print("Error: Country is required.")
-                continue
+            # TODO: parse document for auto-verification logic place here
+            # doc_path = input("path to doc (optional): ")
 
-            reg_id = input("Registration ID (Mandatory): ").strip()
+            country = input("country (default: india): ").strip() or "India"
+            reg_id = input("registration id (mandatory): ").strip()
             if not reg_id:
-                print("Error: Registration ID is mandatory for verification.")
+                print("error: id required")
                 continue
 
-            # Optional inputs
-            linkedin = input("LinkedIn URL (Optional): ").strip() or None
-            
-            websites_input = input("Website(s) (Optional, comma separated): ").strip()
-            website_urls = [u.strip() for u in websites_input.split(',')] if websites_input else []
+            linkedin = input("linkedin url (optional): ").strip()
+            website = input("website (optional): ").strip()
 
-            print(f"\nProcessing signals for '{name}' in '{country}'...")
+            print(f"processing '{name}'...")
             
             company_input = CompanyInput(
-                name=name, 
-                country=country, 
-                registry_id=reg_id, 
-                linkedin_url=linkedin,
-                website_urls=website_urls
+                name=name,country=country,
+                registry_id=reg_id,
+                linkedin_url=linkedin or None,
+                website_urls=[website] if website else None
             )
             
             result = await orchestrator.run_pipeline(company_input)
-
-            print("\n--- Verification Results ---")
-            print(f"Status:      {result.verification_status}")
-            print(f"Trust Score: {result.trust_score}/100")
-            print(f"Tier:        {result.trust_tier}")
             
-            if result.details and "signals" in result.details:
-                print("\n[Signal Checklist]")
-                signals = result.details["signals"]
-                
-                print("[Registry Sources]")
-                breakdown = signals.get("registry_breakdown", {})
-                if breakdown:
-                    for domain, found in breakdown.items():
-                        mark = "VERIFIED" if found else "NOT FOUND"
-                        print(f"  - {domain}: {mark}")
-                else:
-                    reg_mark = "YES" if signals.get("registry_link_found") else "NO"
-                    print(f"  - Global Link: {reg_mark}")
-                
-                print("\n[Additional Signals]")
-                if linkedin:
-                    li_mark = "VERIFIED" if signals.get("linkedin_verified") else "NOT VERIFIED"
-                    print(f"  - LinkedIn:     {li_mark}")
-                
-                if website_urls:
-                    web_mark = "VERIFIED" if signals.get("website_content_match") else "NOT VERIFIED"
-                    print(f"  - Website:      {web_mark}")
+            # --- results ---
+            det = result.details
+            pdl = det.get("pdl_data", {})
+            
+            print("\n" + "="*60)
+            print(f"analysis: {name.upper()}")
+            print("="*60)
+            
+            print(f"{'FIELD':<20} | {'INPUT':<30} | {'PDL':<30}")
+            print("-" * 86)
+            print(f"{'Name':<20} | {name[:28]:<30} | {pdl.get('name', 'N/A')[:28]:<30}")
+            print(f"{'Location':<20} | {country:<30} | {str(pdl.get('location', {}).get('country', 'N/A'))[:28]:<30}")
+            print("-" * 86)
 
+            matches = det.get("match_details", {})
+            print(f"\nscores:")
+            print(f"  - search: {matches.get('input_vs_search_score')}/100")
+            print(f"  - pdl:    {matches.get('input_vs_pdl_score')}/100")
+            
+            print(f"\nstatus: {result.verification_status} (score: {result.trust_score})")
+            print("="*60)
+
+            # --- admin ---
+            final = result.verification_status
+            while True:
+                c = input("\nadmin [c]onfirm / [o]verride / [r]eject: ").lower()
+                if c == 'c': break
+                elif c == 'o': final = "Verified"; print("overridden."); break
+                elif c == 'r': final = "Rejected"; print("rejected."); break
+            
+            # --- queue ---
+            payload = {
+                "name": name, "status": final, "score": result.trust_score,
+                "details": det, "ts": datetime.utcnow().isoformat()
+            }
+            
+            try:
+                if await redis_client.rpush("queue:sentiment_analysis", json.dumps(payload)):
+                    print("[ok] queued")
+                else:
+                    print("[warn] redis offline. skip.")
+            except Exception as e:
+                print(f"[err] queue: {e}")
+                
             print("-" * 30)
 
-        except KeyboardInterrupt:
-            print("\nSession Terminated.")
-            break
+        except KeyboardInterrupt: break
         except Exception as e:
-            print(f"Error: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    # Close Redis connection on exit
+            print(f"\n[err] {e}")
+
     await redis_client.close()
+    print("\nbye.")
 
 if __name__ == "__main__":
     if sys.platform == 'win32':

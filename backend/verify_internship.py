@@ -87,6 +87,37 @@ async def verify():
         else:
             print(f"Failed to create internship: {post_res.status_code} - {post_res.text}")
 
+    # Verify Logic Flow (Read from Redis)
+    print("\n--- Verifying Pipeline Data Flow ---")
+    try:
+        import redis.asyncio as redis
+        # Simplified connection just for this check
+        r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+        
+        company_name = "Test Company"
+        
+        # 1. Check Metadata Cache
+        cache_key = f"company:metadata:{company_name.lower()}"
+        cached_data = await r.get(cache_key)
+        if cached_data:
+            print(f"[SUCCESS] Found cached rich data for '{company_name}':")
+            print(f"Content (Truncated): {cached_data[:200]}...")
+        else:
+            print(f"[INFO] No rich data found in cache for '{company_name}'. (Did PDL find a match?)")
+            
+        # 2. Check Sentiment Queue
+        queue_key = "queue:sentiment_analysis"
+        # Peek at the list
+        queue_items = await r.lrange(queue_key, 0, -1)
+        if company_name in queue_items:
+             print(f"[SUCCESS] '{company_name}' is present in '{queue_key}'.")
+        else:
+             print(f"[INFO] '{company_name}' not found in '{queue_key}'.")
+
+        await r.close()
+    except Exception as e:
+        print(f"Redis Verification Failed: {e}")
+
     await db.disconnect()
 
 if __name__ == "__main__":
