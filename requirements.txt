@@ -11,3 +11,6 @@ thefuzz
 pydantic
 fpdf2
 openpyxl
+pypdf
+python-docx
+python-multipart

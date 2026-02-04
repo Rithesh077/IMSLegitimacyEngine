@@ -1,87 +1,155 @@
-# Integration Guide: Company Legitimacy Microservice
+# Company Legitimacy Engine - Integration Manual
 
-This guide details how to integrate the Company Legitimacy Verification Microservice into your core application ecosystem.
+This manual provides the core development team with all necessary details to integrate the **Company Legitimacy Engine** into the main application.
 
-## 1. Architecture Overview
-This service operates as a standalone microservice exposing a REST API. It handles the complex logic of registry lookups, web scraping, and AI analysis, returning a consolidated trust signal.
+## 1. API Endpoints Overview
 
-*   **Protocol**: REST (JSON)
-*   **Port**: 8001 (Default)
-*   **Authentication**: None (Internal Service) / API Key (Optional Config)
+The engine exposes the following RESTful endpoints via `app.verification.router`.
 
-## 2. API Endpoint
+| Method | Endpoint | Description | Input | Output | Modules Used |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **POST** | `/verification/parse/recruiter-registration` | Parses Recruiter Registration Docs | `file` (UploadFile) | JSON (Company Details) | `DocumentParser`, `GeminiProvider` |
+| **POST** | `/verification/parse/offer-letter` | Parses Student Offer Letters | `file` (UploadFile) | JSON (Offer Details) | `DocumentParser`, `GeminiProvider` |
+| **POST** | `/verification/verify` | Runs Full Legitimacy Pipeline | JSON (`CompanyInput`) | JSON (`CredibilityAnalysis`) | `PipelineOrchestrator` |
+| **GET** | `/verification/report/{filename}` | Download PDF Report | `filename` (str) | PDF File | `FileResponse` |
+| **GET** | `/verification/history` | Get All Verification Logs | None | JSON (List) | `ExcelLogger` (Reader) |
 
-### Verify Company
-**POST** `/verification/verify`
+---
 
-#### Request Schema
+## 2. Endpoint Details
+
+### A. Parse Recruiter Registration
+**Purpose**: Auto-fill company details for recruiters during onboarding.
+**URL**: `/verification/parse/recruiter-registration`
+**Strict Enforcement**: Rejects files missing *Name, Country, HR Name, or HR Email*.
+
+**Request (Multipart/Form-Data)**:
+- `file`: The document to parse.
+
+**Response (Success 200)**:
 ```json
 {
-  "name": "Zerodha Broking Limited",
-  "industry": "Fintech",
+  "name": "TechNova Solutions",
   "country": "India",
-  "registry_id": "U65990KA2010PTC054944",
-  "website_urls": ["https://zerodha.com"],
-  "linkedin_url": "https://linkedin.com/company/zerodha",
-  "hr_name": "Nithin Kamath",
-  "hr_email": "nithin@zerodha.com",
-  "registered_address": "153/154, 4th Cross, J.P. Nagar 4th Phase, Bangalore"
+  "industry": "Software",
+  "hr_name": "Rajesh Kumar",
+  "hr_email": "rajesh@technova.com",
+  "website_urls": ["www.technova.com"],
+  "registered_address": "..."
+}
+```
+**Response (Error 400)**:
+```json
+{ "detail": "Invalid Registration Document. Missing: country" }
+```
+
+### B. Parse Offer Letter
+**Purpose**: Validate offer letters uploaded by students.
+**URL**: `/verification/parse/offer-letter`
+**Strict Enforcement**: Rejects files missing *Name, Country, HR Email, or Role*.
+
+**Request**:
+- `file`: Offer letter PDF/DOCX.
+
+**Response (Success 200)**:
+```json
+{
+  "name": "TechNova Solutions",
+  "hr_email": "hr@technova.com",
+  "role": "Software Intern",
+  "stipend_mentioned": true,
+  "is_offer_letter": true
 }
 ```
 
-*   `name` (Required): Official company name.
-*   `country` (Optional): Default "India".
-*   `registry_id` (Optional): CIN/LLPIN/GST for official lookup.
-*   `hr_name` / `hr_email` (Optional): Used for association verification.
+### C. Verify Company
+**Purpose**: The core engine. Runs Layer 1 (Registry) + Layer 2 (Footprint) + Layer 3 (AI) analysis.
+**URL**: `/verification/verify`
 
-#### Response Schema
+**Request (JSON)**:
 ```json
 {
-  "trust_score": 85.0,
-  "trust_tier": "High",
-  "verification_status": "Verified",
-  "sentiment_summary": "Company verified against official MCA registry. HR contact confirmed via public sources...",
+  "name": "TechNova Solutions",
+  "country": "India",
+  "hr_name": "Rajesh Kumar",    // Optional but recommended
+  "hr_email": "hr@technova.com", // Critical for domain check
+  "website_urls": ["www.technova.com"]
+}
+```
+
+**Response (JSON)**:
+```json
+{
+  "trust_score": 85,
+  "trust_tier": "High Trust",
+  "verification_status": "VERIFIED",
+  "sentiment_summary": "Company is registered with active status...",
   "details": {
-    "report_path": "reports/Zerodha_Broking_Limited_Report.pdf",
-    "signals": {
-      "registry_link_found": true,
-      "email_domain_match": true,
-      "hr_verified": true
-    }
+      "report_path": "reports/TechNova_Report.pdf",
+      "signals": { ... }
   }
 }
 ```
 
-## 3. Integration Workflow
+### D. Download Report
+**Purpose**: Retrieve the official PDF report generated during verification.
+**URL**: `/verification/report/{filename}`
+**Example**: `/verification/report/TechNova_Solutions_Report.pdf`
+*(The filename is provided in the `/verify` response under `details.report_path`)*
 
-### Method A: Synchronous Blocking Call (Simple)
-Call the API directly when you need an immediate answer (e.g., during Admin Review). Note: Latency is 5-20s due to AI/Scraping.
-
-```python
-import requests
-
-def check_company(data):
-    resp = requests.post("http://localhost:8001/verification/verify", json=data)
-    if resp.status_code == 200:
-        result = resp.json()
-        if result['trust_score'] > 60:
-            proceed_onboarding()
-        else:
-            flag_for_review(result['details']['report_path'])
+### E. Get History (Admin)
+**Purpose**: Retrieve the full log of all verifications performed by the engine.
+**URL**: `/verification/history`
+**Response**:
+```json
+{
+  "count": 5,
+  "history": [
+    {
+      "Timestamp": "2026-02-04 14:30:00",
+      "Company Name": "TechNova",
+      "Trust Score": 85,
+      "Status": "VERIFIED",
+      ...
+    }
+  ]
+}
 ```
 
-### Method B: Asynchronous (Recommended)
-For scale, trigger the verification in the background and use webhooks or polling (requires extending the service) or simply save the `report_path` for later consumption.
+---
 
-## 4. Artifacts Coverage
-The service automatically generates:
-1.  **PDF Report**: `reports/<Company>_Report.pdf` (User-facing proof).
-2.  **Master Log**: `reports/master_log.xlsx` (Audit trail).
+## 3. Module Hierarchy (Internal Logic)
 
-## 5. Environment Variables
-Ensure these are set in the microservice's `.env`:
-*   `GEMINI_API_KEY`: Required for AI Analysis.
-*   `PDL_API_KEY`: Optional for enrichment.
+*   **`app.core.document_parser`**: Handles raw text extraction from `.pdf` and `.docx`.
+*   **`app.engine.gemini_provider`**: The Brain.
+    *   `extract_company_input()` / `extract_offer_details()`: Clean extraction logic using reliable fallback models.
+    *   `analyze_company()`: The main fraud verification logic (uses Google Search Tool).
+*   **`app.engine.lookup_engine`**: Connects to MCA (India) or OpenCorporates (Global) to check registration IDs.
+*   **`app.engine.pipeline_orchestrator`**: Connects everything.
+    *   Step 1: Check Registry.
+    *   Step 2: Check Digital Footprint (Domain age, Website match).
+    *   Step 3: AI Sentiment Analysis.
+    *   Step 4: Generate Score & PDF Report.
 
-## 6. Error Handling
-*   **500 Internal Server Error**: Usually network or AI quota issues. The service attempts to return a partial result with `trust_score: 0` and error details in `analysis` if the AI fails mostly gracefully, but infrastructure crashes return 500.
+## 4. Setup for the Team
+
+1.  **Dependencies**:
+    Ensure `requirements.txt` is installed. Key libs: `pypdf`, `python-docx`, `google-genai`.
+
+2.  **Environment Variables (`.env`)**:
+    ```ini
+    GEMINI_API_KEY=AIz...
+    # Optional
+    # RAPIDAPI_KEY=... (If using paid registry lookup)
+    # PDL_API_KEY=... (If using People Data Labs)
+    ```
+
+3.  **Output Directories**:
+    *   `outputs/`: Intermediate extracted text (gitignored).
+    *   `reports/`: Final PDF reports (gitignored).
+    *   `logs/`: Excel Master Log (`master_log.xlsx`).
+
+## 5. Testing
+Run the verify scripts in `scripts/` to confirm the engine is working before integration.
+*   `python scripts/test_smart_parse.py`
+*   `python scripts/test_offer_letter.py`

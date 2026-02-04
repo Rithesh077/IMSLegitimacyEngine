@@ -69,6 +69,105 @@ class GeminiProvider:
             "flags": ["AI_ERROR"]
         }
 
+    def _generate_with_fallback(self, prompt: str) -> Dict[str, Any]:
+        errors = []
+        for model_name in self.models:
+            try:
+                model = genai.GenerativeModel(model_name)
+                resp = model.generate_content(prompt)
+                return self._parse_json(resp.text)
+            except Exception as e:
+                errors.append(f"{model_name}: {str(e)}")
+                continue
+        
+        logger.error(f"All extraction models failed: {errors}")
+        return {}
+
+    def extract_company_input(self, raw_text: str) -> Dict[str, Any]:
+        if not self.api_key:
+            return {}
+
+        prompt = f"""
+        Extract company registration details from the following text into a JSON object.
+        Focus on: Company Legal Name, Country of Registration, Industry, Registry ID (CIN/EIN), Website, LinkedIn, HR Name, HR Email, Address.
+        
+        TEXT:
+        {raw_text[:4000]}
+        
+        OUTPUT JSON Schema:
+        {{
+            "name": "str (Legal Name)",
+            "industry": "str",
+            "country": "str (Country of Registration)",
+            "registry_id": "str (or null)",
+            "website_urls": ["str"],
+            "linkedin_url": "str (or null)",
+            "hr_name": "str (or null)",
+            "hr_email": "str (or null)",
+            "registered_address": "str (or null)"
+        }}
+        """
+        
+        data = self._generate_with_fallback(prompt)
+        if not data:
+            return {}
+
+        if "website_urls" in data and isinstance(data["website_urls"], str):
+            data["website_urls"] = [data["website_urls"]]
+        
+        required = ["name", "country", "hr_name", "hr_email"]
+        missing = [f for f in required if not data.get(f)]
+            
+        if missing:
+            logger.warning(f"Registration Document Rejected. Missing: {missing}")
+            data["error"] = f"Invalid Registration Document. Missing: {', '.join(missing)}"
+        
+        return data
+
+    def extract_offer_details(self, raw_text: str) -> Dict[str, Any]:
+        if not self.api_key:
+            return {}
+
+        prompt = f"""
+        Analyze this text as a "Job Offer Letter" or "Internship Offer".
+        
+        STRICTLY EXTRACT:
+        1. Company Legal Name
+        2. Country (Infer from address if needed)
+        3. HR/Signatory Name
+        4. HR/Sender Email (CRITICAL)
+        5. Role/Title Offered
+        6. Stipend/Salary
+        
+        TEXT:
+        {raw_text[:4000]}
+        
+        OUTPUT JSON Schema:
+        {{
+            "name": "str",
+            "country": "str",
+            "hr_name": "str",
+            "hr_email": "str",
+            "role": "str",
+            "stipend_mentioned": "bool",
+            "is_offer_letter": "bool",
+            "missing_fields": ["str"]
+        }}
+        """
+        
+        data = self._generate_with_fallback(prompt)
+        if not data:
+            return {"error": "AI Extraction Failed"}
+
+        required = ["name", "country", "hr_name", "hr_email", "role"]
+        missing = [f for f in required if not data.get(f)]
+        
+        if missing or not data.get("is_offer_letter"):
+            logger.warning(f"Offer Letter Rejected. Missing: {missing}")
+            data["error"] = f"Invalid Offer Letter. Missing: {', '.join(missing)}"
+        
+        return data
+
     def _build_prompt(self, name: str, l1: Dict[str, Any], rep: list) -> str:
         signals = l1.get('signals', {})
         hr = l1.get('hr_data', {})
