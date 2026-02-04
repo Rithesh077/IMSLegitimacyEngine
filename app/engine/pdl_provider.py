@@ -46,7 +46,7 @@ class PeopleDataLabsProvider(RegistryProvider):
     def verify_enriched(self, name: str, linkedin_url: str = None, website: str = None) -> List[Dict[str, Any]]:
         if not self.api_key: return []
         
-        # TODO: parse document logic here if needed for deeper context
+
 
         # 1. linkedin (best match)
         if linkedin_url:

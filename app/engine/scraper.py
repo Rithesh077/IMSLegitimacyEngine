@@ -13,8 +13,7 @@ class WebScraper:
     def __init__(self):
         self.ua = UserAgent()
         self.session = requests.Session()
-        # TODO: Configure proper logging level for urllib3 in prod
-        # logging.getLogger("urllib3").setLevel(logging.WARNING)
+        self.session = requests.Session()
 
     def _get_headers(self) -> Dict[str, str]:
         return {
@@ -24,7 +23,6 @@ class WebScraper:
         }
 
     def search_web(self, query: str, num_results: int = 3) -> List[Dict[str, str]]:
-        # logger.info(f"search: {query}")
         search_url = "https://html.duckduckgo.com/html/"
         data = {'q': query}
         

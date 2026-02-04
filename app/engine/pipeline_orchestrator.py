@@ -40,6 +40,8 @@ class PipelineOrchestrator:
         pdl_data = {}
         all_search_results = []
 
+
+        
         # 1. registry lookup (if id provided)
         if input_data.registry_id:
             logger.info("fetching registry data...")
@@ -96,7 +98,7 @@ class PipelineOrchestrator:
                 signals["email_domain_match"] = True
                 match_details["matches"].append("email domain match")
             else:
-                # TODO: Refine academic domain check (e.g., use a blacklist)
+                # Check for academic domain mismatch
                 logger.warning(f"Email domain mismatch: {email_domain} vs {web_domain}")
                 if "edu" in email_domain:
                     match_details["matches"].append("university email detected (warning)")
@@ -151,13 +153,15 @@ class PipelineOrchestrator:
         ai_res = await self.sentiment.analyze(input_data.name, l2_context)
         ai_data = ai_res.get("ai_analysis", {})
         
-        # Add AI Score (max 20 bonus, or penalty)
-        # Implementation of AI score integration is pending user finalization of weighing
+        # Override Rule-Based Score with AI Score (Holistic View)
+        final_score = float(ai_data.get("trust_score", score))
+        final_tier = ai_data.get("classification", "Pending")
         
-        return CredibilityAnalysis(
-             trust_score=float(score),
-             trust_tier="High" if score >= 75 else ("Medium" if score >= 50 else "Low"),
-             verification_status=status,
+        # 6. Construct Final Analysis Object
+        analysis_obj = CredibilityAnalysis(
+             trust_score=final_score,
+             trust_tier=final_tier,
+             verification_status="Verified" if final_score >= 60 else "Pending",
              review_count=0,
              sentiment_summary=ai_data.get("analysis", "pending analysis"),
              scraped_sources=[],
@@ -166,8 +170,6 @@ class PipelineOrchestrator:
                  "signals": signals,
                  "match_details": match_details,
                  "pdl_data": pdl_data,
-                 "ai_analysis": ai_res,
-                 "all_search_results": all_search_results,
                  "inputs_provided": {
                      "registry_id": bool(input_data.registry_id),
                      "hr_name": bool(input_data.hr_name),
@@ -175,3 +177,21 @@ class PipelineOrchestrator:
                  }
              }
          )
+        
+        # 7. Generate Reporting Artifacts (PDF & Excel)
+        try:
+            # A. PDF Report
+            from app.core.report_generator import ReportGenerator
+            report_gen = ReportGenerator(analysis_obj, input_data.name)
+            pdf_path = report_gen.generate()
+            analysis_obj.details["report_path"] = pdf_path
+            
+            # B. Master Excel Log
+            from app.core.excel_logger import ExcelLogger
+            ExcelLogger.log_verification(input_data, analysis_obj)
+            
+        except Exception as e:
+            logger.error(f"Reporting failed: {e}")
+            analysis_obj.details["reporting_error"] = str(e)
+            
+        return analysis_obj

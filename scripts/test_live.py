@@ -30,6 +30,12 @@ async def test_live_verification():
             print(f"Status: {data.get('verification_status')}")
             print(f"Classification: {data.get('trust_tier')}")
             print(f"AI Summary: {data.get('sentiment_summary')}")
+            
+            import os
+            os.makedirs("outputs", exist_ok=True)
+            with open("outputs/output.json", "w") as f:
+                json.dump(data, f, indent=2)
+            print("\n[i] Full output saved to 'outputs/output.json'")
         else:
             print("\n--- FAILED ---")
             print(resp.text)
