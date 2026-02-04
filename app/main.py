@@ -8,22 +8,17 @@ load_dotenv()
 
 app = FastAPI(title="Company Verification Service")
 
-# Include the verification router
+# Include routers
 app.include_router(verification_router)
 
 @app.on_event("startup")
 async def startup():
     """Connect to Redis on startup"""
-    # try:
-    #     await redis_client.connect()
-    # except Exception as e:
-    #     print(f"Warning: Redis connection failed on startup: {e}")
     pass
 
 @app.on_event("shutdown")
 async def shutdown():
     """Close Redis connection on shutdown"""
-    # await redis_client.close()
     pass
 
 @app.get("/")

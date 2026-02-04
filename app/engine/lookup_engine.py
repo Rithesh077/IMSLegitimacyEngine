@@ -25,10 +25,7 @@ class LookupEngine:
         # 1. try cache
         # key now allows "None" id
         safe_id = registration_id.lower() if registration_id else "noid"
-        key = f"registry:signal:{country.lower()}:{safe_id}:{name.lower()}"
-        # if raw := await redis_client.get(key):
-        #     try: return json.loads(raw), {}
-        #     except: pass
+        # key = f"registry:signal:{country.lower()}:{safe_id}:{name.lower()}"
 
         # 2. registry verification (only if ID provided)
         breakdown = {}
@@ -46,10 +43,7 @@ class LookupEngine:
         except Exception as e:
             logger.error(f"pdl lookup failed: {e}")
         
-        # 4. cache result
-        # try: await redis_client.set(key, json.dumps(breakdown), ttl=86400)
-        # except: pass
-            
+        
         return breakdown, {}
 
     def _get_provider(self, country: str):

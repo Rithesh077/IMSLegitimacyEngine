@@ -31,19 +31,43 @@ class GeminiProvider:
 
         prompt = self._build_prompt(company_name, layer1_data, reputation_data)
         
+        errors = []
+        
+        
+        # Tool strategies to try in order
+        tool_configs = [
+            [{"google_search_retrieval": {}}],
+            [{"google_search": {}}],
+            None
+        ]
+
         for model_name in self.models:
-            try:
-                logger.info(f"trying gemini model: {model_name}")
-                model = genai.GenerativeModel(model_name)
-                resp = model.generate_content(prompt)
-                return self._parse_json(resp.text)
-            except Exception as e:
-                logger.warning(f"model {model_name} failed: {e}")
-                continue
+            for tools in tool_configs:
+                try:
+                    tool_name = "google_search" if tools else "standard_llm"
+                    logger.info(f"trying gemini model: {model_name} with {tool_name}")
+                    
+                    if tools:
+                        model = genai.GenerativeModel(model_name, tools=tools)
+                    else:
+                        model = genai.GenerativeModel(model_name)
+                    
+                    resp = model.generate_content(prompt)
+                    return self._parse_json(resp.text)
+                except Exception as e:
+                    # Capture error but continue trying configurations/models
+                    err_msg = f"{model_name}({tool_name}): {str(e)}"
+                    # logger.warning(f"attempt failed: {err_msg}") 
+                    errors.append(err_msg)
+                    continue
         
         logger.error("all gemini models failed")
-        logger.error("all gemini models failed")
-        return {"trust_score": 0, "classification": "Unknown", "analysis": "AI analysis failed (all models)", "flags": ["AI_ERROR"]}
+        return {
+            "trust_score": 0, 
+            "classification": "Unknown", 
+            "analysis": f"AI analysis failed. Details: {'; '.join(errors[:3])}...", # Truncate for readability
+            "flags": ["AI_ERROR"]
+        }
 
     def _build_prompt(self, name: str, l1: Dict[str, Any], rep: list) -> str:
         signals = l1.get('signals', {})
@@ -53,26 +77,38 @@ class GeminiProvider:
         return f"""
         act as fraud analyst. check '{name}'.
         
-        DATA:
+        You have access to Google Search. USE IT.
+        Perform independent verification to confirm:
+        1. Company existence and official website.
+        2. Recent news or regulatory warnings.
+        3. Employee presence on LinkedIn.
+        
+        PROVIDED DATA (Layer 1):
         - Industry: {l1.get('industry') or 'Not Provided'}
         - Registry Found: {signals.get('registry_link_found')}
         - HR Verification: {signals.get('hr_verified')} (Name: {hr.get('name')})
         - Address Verification: {signals.get('address_verified')} (Input: {addr.get('input') or 'Not Provided'})
         - Digital Footprint: LinkedIn={signals.get('linkedin_verified')}, Website={signals.get('website_content_match')}
         - PDL Profile: {json.dumps(l1.get('pdl_data', {}), default=str)}
-        - Reviews/Scam Search: {json.dumps(rep[:5])}
+        - Reviews/Scam Search (Prelim): {json.dumps(rep[:5])}
 
         TASK: report legitimacy.
         1. Calculate Trust Score (0-100).
         2. Classify into: "High Trust", "Review Needed", "Low Trust".
-        NOTE: High trust if HR/Address are verified even if Registry is missing.
-
+        3. Analysis must cite findings from YOUR Google Search.
+        
         OUTPUT JSON: {{ "trust_score": int, "classification": "str", "analysis": "str", "flags": ["str"] }}
         """
 
     def _parse_json(self, text: str) -> Dict[str, Any]:
         try:
+            # Clean possible markdown or tool output artifacts
             clean = text.replace("```json", "").replace("```", "").strip()
+            # Sometimes models with tools return text before json
+            start = clean.find("{")
+            end = clean.rfind("}") + 1
+            if start != -1 and end != -1:
+                clean = clean[start:end]
             return json.loads(clean)
         except:
             return {"trust_score": 0, "classification": "Error", "analysis": text[:100], "flags": ["PARSE_ERROR"]}
