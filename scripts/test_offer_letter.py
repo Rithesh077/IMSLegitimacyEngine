@@ -15,7 +15,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 load_dotenv()
 
 from app.core.document_parser import DocumentParser
-from app.engine.gemini_provider import GeminiProvider
+from app.engine.factory import get_ai_provider
 from app.engine.pipeline_orchestrator import PipelineOrchestrator
 from app.schemas.company import CompanyInput
 
@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 async def run_offer_test():
-    # 1. Simulate a Dummy Offer Letter
+    # simulate dummy offer letter
     offer_text = """
     OFFER OF INTERNSHIP
     -------------------
@@ -44,35 +44,59 @@ async def run_offer_test():
     123 Innovation Drive, Bangalore, India
     """
     
-    # Ensure outputs directory exists
-    output_dir = os.path.join(os.path.dirname(__file__), '..', 'outputs')
-    os.makedirs(output_dir, exist_ok=True)
+    # ensure directories exist
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    input_dir = os.path.join(base_dir, 'inputs')
+    report_dir = os.path.join(base_dir, 'reports')
+    os.makedirs(input_dir, exist_ok=True)
+    os.makedirs(report_dir, exist_ok=True)
     
-    file_path = os.path.join(output_dir, "dummy_offer.txt")
+    file_path = None
     
-    with open(file_path, "w") as f:
-        f.write(offer_text)
+    # check for any valid file in inputs/ (prefer offer-like names if possible, else take first)
+    valid_exts = [".pdf", ".docx", ".txt"]
+    for f in os.listdir(input_dir):
+        # simple heuristic to avoid picking up registration docs if both exist
+        if "offer" in f.lower() or "intern" in f.lower():
+             file_path = os.path.join(input_dir, f)
+             break
+    
+    # fallback to any valid file if no specific offer file found
+    if not file_path:
+        for f in os.listdir(input_dir):
+            if any(f.lower().endswith(ext) for ext in valid_exts):
+                file_path = os.path.join(input_dir, f)
+                break
+
+    # if still no file, create dummy
+    if not file_path:
+        file_path = os.path.join(input_dir, "dummy_offer.txt")
+        print(f"No input file found. Creating dummy: {file_path}")
+        with open(file_path, "w") as f:
+            f.write(offer_text)
+    else:
+        print(f"Found input file: {file_path}")
         
     print("\n--- 1. Parsing Offer Letter ---")
     parsed = DocumentParser.parse(file_path)
     
     print("\n--- 2. Validating Content ---")
-    ai = GeminiProvider()
+    ai = get_ai_provider()
     offer_data = ai.extract_offer_details(parsed['content'])
     print("Extracted:", offer_data)
     
     if not offer_data or offer_data.get("error"):
-        print(f"❌ REJECTED: {offer_data.get('error', 'Empty response from AI')}")
+        print(f"REJECTED: {offer_data.get('error', 'Empty response from AI')}")
         return
         
-    print("✅ VALID OFFER DETECTED")
+    print("VALID OFFER DETECTED")
 
     print("\n--- 3. Verifying Company Legitimacy ---")
-    # Map extracted offer data to CompanyInput
+    # map extracted offer data to companyinput
     input_obj = CompanyInput(
         name=offer_data.get("name", "Unknown"),
-        country=offer_data.get("country", "India"), # Default/Inferred
-        hr_name=offer_data.get("hr_name", "HR Team"), # Default if not found
+        country=offer_data.get("country", "India"), # default/inferred
+        hr_name=offer_data.get("hr_name", "HR Team"), # default if not found
         hr_email=offer_data.get("hr_email"),
         industry="Unknown"
     )

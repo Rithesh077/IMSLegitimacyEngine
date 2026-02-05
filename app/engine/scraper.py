@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-import trafilatura
+
 from fake_useragent import UserAgent
 import random
 import time
@@ -66,24 +66,7 @@ class WebScraper:
         
         return []
 
-    def extract_content(self, url: str) -> Dict[str, str]:
-        try:
-            response = self.session.get(url, headers=self._get_headers(), timeout=15)
-            if response.status_code != 200:
-                 return {"url": url, "error": f"Status {response.status_code}", "status": "failed"}
 
-            downloaded = response.text
-            text = trafilatura.extract(downloaded, include_comments=True, include_tables=False, favor_precision=True)
-            metadata = trafilatura.extract_metadata(downloaded)
-            
-            return {
-                "url": url,
-                "title": metadata.title if metadata and metadata.title else "Unknown",
-                "text": text if text else "",
-                "status": "success"
-            }
-        except Exception as e:
-            return {"url": url, "error": str(e), "status": "failed"}
 
     def verify_url_owner(self, url: str, expected_name: str) -> bool:
         # reverse lookup the url to see if title matches expected name

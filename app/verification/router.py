@@ -1,6 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from app.schemas.company import CompanyInput, CredibilityAnalysis
+from app.schemas.allocation import AllocationRequest, AllocationResponse
 from app.engine.pipeline_orchestrator import PipelineOrchestrator
+from app.engine.factory import get_ai_provider
+from app.engine.allocation_engine import AllocationEngine
 import logging
 
 router = APIRouter(prefix="/verification", tags=["Verification"])
@@ -10,10 +13,10 @@ logger = logging.getLogger(__name__)
 async def verify_company(data: CompanyInput):
     """
     Verifies a company's legitimacy using the multi-layered pipeline:
-    1. Registry Lookup (if ID provided)
-    2. Digital Footprint Analysis (LinkedIn/Website)
-    3. HR & Address Association Verification
-    4. AI Analysis (Gemini)
+    1. registry lookup
+    2. digital footprint analysis
+    3. hr & address association verification
+    4. ai analysis
     """
     try:
         orchestrator = PipelineOrchestrator()
@@ -43,14 +46,14 @@ async def parse_recruiter_registration(file: UploadFile = File(...)):
         with open(temp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        # 1. Parse content
+        # parse content
         raw = DocumentParser.parse(temp_path)
         
-        # 2. Extract with AI (Strict Checks)
-        ai = GeminiProvider()
+        # extract with ai
+        ai = get_ai_provider()
         extracted_data = ai.extract_company_input(raw['content'])
         
-        # 3. Handle Errors
+        # handle errors
         if extracted_data.get("error"):
              raise HTTPException(status_code=400, detail=extracted_data["error"])
              
@@ -79,14 +82,14 @@ async def parse_offer_letter(file: UploadFile = File(...)):
         with open(temp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        # 1. Parse content
+        # parse content
         raw = DocumentParser.parse(temp_path)
         
-        # 2. Extract with AI (Strict Checks)
-        ai = GeminiProvider()
+        # extract with ai
+        ai = get_ai_provider()
         extracted_data = ai.extract_offer_details(raw['content'])
         
-        # 3. Handle Errors
+        # handle errors
         if extracted_data.get("error"):
              raise HTTPException(status_code=400, detail=extracted_data["error"])
              
@@ -104,9 +107,15 @@ async def get_report(filename: str):
     Example: 'TechNova_Solutions_Report.pdf'
     """
     file_path = f"reports/{filename}"
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Report not found")
-    return FileResponse(file_path, media_type="application/pdf", filename=filename)
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type="application/pdf", filename=filename)
+    return {"error": "File not found"}
+
+@router.post("/allocation/recommend", response_model=AllocationResponse)
+async def recommend_guide(request: AllocationRequest):
+    engine = AllocationEngine()
+    result = engine.allocate(request)
+    return result
 
 @router.get("/history")
 async def get_verification_history():

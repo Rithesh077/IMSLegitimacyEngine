@@ -8,15 +8,15 @@ logger = logging.getLogger(__name__)
 
 class DocumentParser:
     """
-    General purpose document parser for PDF and DOCX files.
-    Extracts raw text content for downstream AI processing.
+    generic parser for pdf and docx
+    extracts raw text
     """
     
     @staticmethod
     def parse(file_path: str) -> Dict[str, Any]:
         """
-        Parses a document based on file extension.
-        Returns dictionary with 'content' (str) and 'metadata' (dict).
+        parse based on extension
+        returns dict with content and metadata
         """
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")

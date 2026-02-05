@@ -3,7 +3,7 @@ import logging
 import json
 from app.engine.providers import ZaubaProvider, OpenCorporatesProvider
 from app.engine.pdl_provider import PeopleDataLabsProvider
-from app.core.redis import redis_client
+
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +24,6 @@ class LookupEngine:
     async def check_registry_and_metadata(self, name: str, country: str, registration_id: Optional[str], linkedin_url: str = None, website: str = None) -> tuple[Dict[str, Any], Dict[str, Any]]:
         # 1. try cache
         # key now allows "None" id
-        safe_id = registration_id.lower() if registration_id else "noid"
-        # key = f"registry:signal:{country.lower()}:{safe_id}:{name.lower()}"
 
         # 2. registry verification (only if ID provided)
         breakdown = {}
