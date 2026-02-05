@@ -3,10 +3,10 @@ uvicorn
 httpx
 beautifulsoup4
 google-generativeai
-redis
+
 python-dotenv
 fake-useragent
-trafilatura
+
 thefuzz
 pydantic
 fpdf2
@@ -14,3 +14,6 @@ openpyxl
 pypdf
 python-docx
 python-multipart
+sqlalchemy
+asyncpg
+greenlet

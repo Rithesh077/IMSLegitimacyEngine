@@ -34,7 +34,7 @@ class GeminiProvider:
         errors = []
         
         
-        # Tool strategies to try in order
+        # tool strategies
         tool_configs = [
             [{"google_search_retrieval": {}}],
             [{"google_search": {}}],
@@ -55,9 +55,7 @@ class GeminiProvider:
                     resp = model.generate_content(prompt)
                     return self._parse_json(resp.text)
                 except Exception as e:
-                    # Capture error but continue trying configurations/models
-                    err_msg = f"{model_name}({tool_name}): {str(e)}"
-                    # logger.warning(f"attempt failed: {err_msg}") 
+                    err_msg = f"{model_name}({tool_name}): {str(e)}" 
                     errors.append(err_msg)
                     continue
         
@@ -65,7 +63,7 @@ class GeminiProvider:
         return {
             "trust_score": 0, 
             "classification": "Unknown", 
-            "analysis": f"AI analysis failed. Details: {'; '.join(errors[:3])}...", # Truncate for readability
+            "analysis": f"ai analysis failed: {'; '.join(errors[:3])}...", # truncate
             "flags": ["AI_ERROR"]
         }
 
@@ -168,6 +166,42 @@ class GeminiProvider:
         
         return data
 
+    def match_guide(self, student_json: Dict[str, Any], faculty_list: list) -> Dict[str, Any]:
+        """
+        matches a student to the best faculty based on internship description vs expertise.
+        """
+        if not self.api_key:
+            return {}
+
+        prompt = f"""
+        Act as an Academic Internship Coordinator. Match the student to the best faculty guide.
+
+        STUDENT INTERNSHIP:
+        Role: {student_json.get('internship_role')}
+        Description: {student_json.get('internship_description')}
+        Skills: {student_json.get('skills')}
+
+        AVAILABLE FACULTY CANDIDATES:
+        {json.dumps(faculty_list, indent=2)}
+
+        TASK:
+        1. Compare the Student's "Internship Description" with each Faculty's "Expertise".
+        2. Identify the single best match.
+        3. Assign a Confidence Score (0-100). 
+           - >80: Perfect Match (Direct expertise alignment).
+           - 60-80: Good Match (Related field).
+           - <60: Weak Match.
+
+        OUTPUT JSON:
+        {{
+            "best_faculty_id": "str",
+            "confidence_score": float,
+            "reasoning": "brief explanation of why this faculty is better than others"
+        }}
+        """
+
+        return self._generate_with_fallback(prompt)
+
     def _build_prompt(self, name: str, l1: Dict[str, Any], rep: list) -> str:
         signals = l1.get('signals', {})
         hr = l1.get('hr_data', {})
@@ -201,9 +235,9 @@ class GeminiProvider:
 
     def _parse_json(self, text: str) -> Dict[str, Any]:
         try:
-            # Clean possible markdown or tool output artifacts
+            # clean markdown
             clean = text.replace("```json", "").replace("```", "").strip()
-            # Sometimes models with tools return text before json
+            # handle text before json
             start = clean.find("{")
             end = clean.rfind("}") + 1
             if start != -1 and end != -1:

@@ -42,7 +42,7 @@ class PipelineOrchestrator:
 
 
         
-        # 1. registry lookup (if id provided)
+        # registry lookup (if id provided)
         if input_data.registry_id:
             logger.info("fetching registry data...")
             web = input_data.website_urls[0] if input_data.website_urls else None
@@ -69,7 +69,7 @@ class PipelineOrchestrator:
             
             signals["registry_link_found"] = any(v.get("found") for k,v in breakdown.items() if k != "peopledatalabs.com")
 
-        # 2. digital footprint
+        # digital footprint
         if input_data.linkedin_url:
             signals["linkedin_verified"] = self.scraper.verify_url_owner(
                 input_data.linkedin_url, input_data.name
@@ -81,7 +81,7 @@ class PipelineOrchestrator:
                      signals["website_content_match"] = True
                      break
         
-        # 3. Email Domain Verification
+        # email domain verification
         if input_data.hr_email and "@" in input_data.hr_email:
             email_domain = input_data.hr_email.split("@")[-1].lower()
             
@@ -103,7 +103,7 @@ class PipelineOrchestrator:
                 if "edu" in email_domain:
                     match_details["matches"].append("university email detected (warning)")
 
-        # 3. Parallel verification (HR & Address)
+        # parallel verification (hr & address)
         logger.info("verifying hr and address associations...")
         hr_task = asyncio.to_thread(self.scraper.verify_association, input_data.name, input_data.hr_name)
         
@@ -124,25 +124,25 @@ class PipelineOrchestrator:
             signals["address_verified"] = True
             match_details["matches"].append("address verified")
 
-        # --- holistic scoring (0-100) ---
+        # holistic scoring
         score = 0
         
-        # A. Registry (40 pts)
+        # registry (40 pts)
         if signals["registry_link_found"]: 
             score += 40
         
-        # B. Digital Footprint (20 pts)
+        # digital footprint (20 pts)
         if signals["linkedin_verified"]: score += 10
         if signals["website_content_match"]: score += 10
         if signals["email_domain_match"]: score += 10
         
-        # C. Verification Signals (40 pts)
+        # verification signals (40 pts)
         if signals["hr_verified"]: score += 25
         if signals["address_verified"]: score += 15
             
         status = "Verified" if score >= 60 else "Pending"
 
-        # 5. layer 2 (ai analysis)
+        # layer 2 (ai analysis)
         l2_context = {
             "signals": signals, 
             "pdl_data": pdl_data,
@@ -153,11 +153,11 @@ class PipelineOrchestrator:
         ai_res = await self.sentiment.analyze(input_data.name, l2_context)
         ai_data = ai_res.get("ai_analysis", {})
         
-        # Override Rule-Based Score with AI Score (Holistic View)
+        # override rule-based score with ai score
         final_score = float(ai_data.get("trust_score", score))
         final_tier = ai_data.get("classification", "Pending")
         
-        # 6. Construct Final Analysis Object
+        # construct final analysis object
         analysis_obj = CredibilityAnalysis(
              trust_score=final_score,
              trust_tier=final_tier,
@@ -178,15 +178,15 @@ class PipelineOrchestrator:
              }
          )
         
-        # 7. Generate Reporting Artifacts (PDF & Excel)
+        # generate reporting artifacts
         try:
-            # A. PDF Report
+            # pdf report
             from app.core.report_generator import ReportGenerator
             report_gen = ReportGenerator(analysis_obj, input_data.name)
             pdf_path = report_gen.generate()
             analysis_obj.details["report_path"] = pdf_path
             
-            # B. Master Excel Log
+            # master excel log
             from app.core.excel_logger import ExcelLogger
             ExcelLogger.log_verification(input_data, analysis_obj)
             

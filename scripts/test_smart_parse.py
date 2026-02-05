@@ -15,7 +15,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 load_dotenv()
 
 from app.core.document_parser import DocumentParser
-from app.engine.gemini_provider import GeminiProvider
+from app.engine.factory import get_ai_provider
 from app.engine.pipeline_orchestrator import PipelineOrchestrator
 from app.schemas.company import CompanyInput
 
@@ -41,21 +41,36 @@ async def run_smart_parse_test():
     LinkedIn: linkedin.com/company/technova-solutions
     """
     
-    # Ensure outputs directory exists
-    output_dir = os.path.join(os.path.dirname(__file__), '..', 'outputs')
-    os.makedirs(output_dir, exist_ok=True)
+    # ensure directories exist
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    input_dir = os.path.join(base_dir, 'inputs')
+    report_dir = os.path.join(base_dir, 'reports')
+    os.makedirs(input_dir, exist_ok=True)
+    os.makedirs(report_dir, exist_ok=True)
     
-    file_path = os.path.join(output_dir, "dummy_doc.txt")
+    file_path = None
     
-    with open(file_path, "w") as f:
-        f.write(dummy_text)
+    # check for any valid file in inputs/
+    valid_exts = [".pdf", ".docx", ".txt"]
+    for f in os.listdir(input_dir):
+        if any(f.lower().endswith(ext) for ext in valid_exts):
+            file_path = os.path.join(input_dir, f)
+            print(f"Found input file: {f}")
+            break
+            
+    # if no file, create dummy
+    if not file_path:
+        file_path = os.path.join(input_dir, "dummy_doc.txt")
+        print(f"No input file found. Creating dummy: {file_path}")
+        with open(file_path, "w") as f:
+            f.write(dummy_text)
         
     print("\n--- 1. Document Parsing ---")
     parsed = DocumentParser.parse(file_path)
     print(f"Extracted {len(parsed['content'])} chars.")
     
     print("\n--- 2. AI Extraction ---")
-    ai = GeminiProvider()
+    ai = get_ai_provider()
     extracted_data = ai.extract_company_input(parsed['content'])
     print("Extracted Data:", extracted_data)
     
