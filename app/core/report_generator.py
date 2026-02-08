@@ -1,7 +1,7 @@
 from fpdf import FPDF
 from app.schemas.company import CredibilityAnalysis
-import textwrap
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,6 @@ class ReportGenerator(FPDF):
         self.add_page()
 
     def header(self):
-        # Logo or Title
         self.set_font('Arial', 'B', 16)
         self.cell(0, 10, 'Company Legitimacy Report', 0, 1, 'C')
         self.ln(5)
@@ -25,7 +24,7 @@ class ReportGenerator(FPDF):
         self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
     def generate(self) -> str:
-        """Generates the PDF and returns the filename."""
+        """generates pdf and returns filename."""
         self._add_title_section()
         self._add_score_section()
         self._add_summary_section()
@@ -33,7 +32,6 @@ class ReportGenerator(FPDF):
         self._add_red_flags()
         
         filename = f"reports/{self.company_name.replace(' ', '_')}_Report.pdf"
-        import os
         os.makedirs("reports", exist_ok=True)
         self.output(filename)
         return filename
@@ -47,30 +45,45 @@ class ReportGenerator(FPDF):
         self.set_font('Arial', 'B', 12)
         score = self.analysis.trust_score
         
-        # Color Coding
         if score >= 75:
-            self.set_text_color(0, 150, 0)  # Green
+            self.set_text_color(0, 150, 0)
         elif score >= 50:
-            self.set_text_color(255, 165, 0) # Orange
+            self.set_text_color(255, 165, 0)
         else:
-            self.set_text_color(200, 0, 0)   # Red
+            self.set_text_color(200, 0, 0)
 
         self.cell(0, 10, f"Trust Score: {score}/100 ({self.analysis.trust_tier})", 0, 1, 'L')
-        self.set_text_color(0, 0, 0) # Reset
+        self.set_text_color(0, 0, 0)
         self.ln(5)
+
+    def _sanitize_text(self, text: str) -> str:
+        """cleans text for pdf rendering."""
+        if not text:
+            return ""
+        replacements = {
+            "\u2019": "'", "\u2018": "'", "\u201c": '"', "\u201d": '"',
+            "\u2013": "-", "\u2014": "-", "\u2022": "-", "\u2026": "...",
+            "*": "", "\n": " ", "\r": " ", "\t": " "
+        }
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        text = text.encode('ascii', 'ignore').decode('ascii')
+        return text[:2000] if len(text) > 2000 else text
 
     def _add_summary_section(self):
         self.set_font('Arial', 'B', 12)
         self.cell(0, 10, "Executive Summary", 0, 1, 'L')
         self.set_font('Arial', '', 11)
         
-        # Determine strictness of wrapping based on page width
-        summary_text = self.analysis.sentiment_summary
+        summary_text = self._sanitize_text(self.analysis.sentiment_summary)
+        if not summary_text.strip():
+            summary_text = "Analysis pending or unavailable."
         
-        # Basic sanitization
-        summary_text = summary_text.replace("\u2019", "'").replace("\u2013", "-").replace("*", "")
-        
-        self.multi_cell(0, 7, summary_text)
+        try:
+            self.multi_cell(0, 7, summary_text)
+        except Exception as e:
+            logger.warning(f"pdf render failed: {e}")
+            self.multi_cell(0, 7, "Summary could not be rendered.")
         self.ln(5)
 
     def _add_verification_details(self):
@@ -79,7 +92,6 @@ class ReportGenerator(FPDF):
         self.set_font('Arial', '', 10)
         
         signals = self.analysis.details.get("signals", {})
-        
         data = [
             ("Registry Found", signals.get("registry_link_found", False)),
             ("HR Contact Verified", signals.get("hr_verified", False)),
@@ -93,15 +105,10 @@ class ReportGenerator(FPDF):
             status = "VERIFIED" if val else "NOT FOUND / UNVERIFIED"
             self.set_font('Arial', 'B', 10)
             self.cell(50, 8, label + ":", 0, 0)
-            
             self.set_font('Arial', '', 10)
-            if val:
-                self.set_text_color(0, 128, 0)
-            else:
-                self.set_text_color(128, 0, 0)
+            self.set_text_color(0, 128, 0) if val else self.set_text_color(128, 0, 0)
             self.cell(0, 8, status, 0, 1)
             self.set_text_color(0, 0, 0)
-            
         self.ln(5)
 
     def _add_red_flags(self):
@@ -115,7 +122,5 @@ class ReportGenerator(FPDF):
         self.set_font('Arial', '', 10)
         
         for flag in self.analysis.red_flags:
-            # Clean flag text
-            flag = flag.replace("\u2019", "'")
-            # Use dash prefix to safely render bullet points
+            flag = self._sanitize_text(flag)
             self.multi_cell(0, 7, f"- {flag}")

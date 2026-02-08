@@ -12,10 +12,7 @@ import uuid
 logger = logging.getLogger(__name__)
 
 class PipelineOrchestrator:
-    """
-    orchestrates verification pipeline.
-    aggregates registry, footprint, and ai signals.
-    """
+    """orchestrates verification pipeline: registry, footprint, ai signals."""
     
     def __init__(self):
         self.lookup_engine = LookupEngine() 
@@ -55,7 +52,6 @@ class PipelineOrchestrator:
             )
             signals["registry_breakdown"] = breakdown
             
-            # check registry matches
             best_score = 0
             for domain, data in breakdown.items():
                 if domain == "peopledatalabs.com": continue
@@ -86,11 +82,9 @@ class PipelineOrchestrator:
                      signals["website_content_match"] = True
                      break
         
-        # email domain verification
+        # email domain check
         if input_data.hr_email and "@" in input_data.hr_email:
             email_domain = input_data.hr_email.split("@")[-1].lower()
-            
-            # extract website domain
             web_domain = ""
             if input_data.website_urls:
                  try:
@@ -103,12 +97,11 @@ class PipelineOrchestrator:
                 signals["email_domain_match"] = True
                 match_details["matches"].append("email domain match")
             else:
-                # check academic domain
                 logger.warning(f"email domain mismatch: {email_domain} vs {web_domain}")
                 if "edu" in email_domain:
                     match_details["matches"].append("university email detected (warning)")
 
-        # verification (hr & address)
+        # hr & address verification
         logger.info("verifying hr and address...")
         hr_task = asyncio.to_thread(self.scraper.verify_association, input_data.name, input_data.hr_name)
         
@@ -149,11 +142,9 @@ class PipelineOrchestrator:
         ai_res = await self.sentiment.analyze(input_data.name, l2_context)
         ai_data = ai_res.get("ai_analysis", {})
         
-        # override score
         final_score = float(ai_data.get("trust_score", score))
         final_tier = ai_data.get("classification", "Pending")
         
-        # result object
         analysis_obj = CredibilityAnalysis(
              trust_score=final_score,
              trust_tier=final_tier,
@@ -182,11 +173,9 @@ class PipelineOrchestrator:
             pdf_path = report_gen.generate()
             analysis_obj.details["report_path"] = pdf_path
             
-            # save to db
             if db:
                 await self.save_result(db, input_data, analysis_obj, pdf_path)
             
-            # excel log
             from app.core.excel_logger import ExcelLogger
             ExcelLogger.log_verification(input_data, analysis_obj)
             
@@ -197,13 +186,12 @@ class PipelineOrchestrator:
         return analysis_obj
 
     async def save_result(self, db: AsyncSession, input_data: CompanyInput, analysis: CredibilityAnalysis, report_path: str = None):
-        """saves or updates verification result."""
+        """saves or updates verification result in db."""
         if not input_data.user_id:
             logger.warning("skipping db save: no user_id.")
             return
 
         try:
-            # check existence
             stmt = select(Company).where(Company.company_name.ilike(input_data.name))
             result = await db.execute(stmt)
             existing_company = result.scalars().first()

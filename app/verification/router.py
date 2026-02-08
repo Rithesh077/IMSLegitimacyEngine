@@ -18,13 +18,7 @@ logger = logging.getLogger(__name__)
 
 @router.post("/verify", response_model=CredibilityAnalysis)
 async def verify_company(data: CompanyInput, db: AsyncSession = Depends(get_db)):
-    """
-    verifies company legitimacy using:
-    1. registry lookup
-    2. digital footprint analysis
-    3. hr & address verification
-    4. ai analysis
-    """
+    """verifies company legitimacy via registry, footprint, and ai analysis."""
     try:
         orchestrator = PipelineOrchestrator()
         result = await orchestrator.run_pipeline(data, db)
@@ -35,10 +29,7 @@ async def verify_company(data: CompanyInput, db: AsyncSession = Depends(get_db))
 
 @router.post("/parse/recruiter-registration")
 async def parse_recruiter_registration(file: UploadFile = File(...)):
-    """
-    parses recruiter registration doc (pdf/docx).
-    returns structured data (name, country, hr info).
-    """
+    """parses recruiter registration doc and returns structured data."""
     temp_path = f"outputs/temp_{file.filename}"
     os.makedirs("outputs", exist_ok=True)
     
@@ -46,14 +37,10 @@ async def parse_recruiter_registration(file: UploadFile = File(...)):
         with open(temp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        # parse content
         raw = DocumentParser.parse(temp_path)
-        
-        # extract with ai
         ai = get_ai_provider()
         extracted_data = ai.extract_company_input(raw['content'])
         
-        # handle errors
         if extracted_data.get("error"):
              raise HTTPException(status_code=400, detail=extracted_data["error"])
              
@@ -70,9 +57,7 @@ async def parse_recruiter_registration(file: UploadFile = File(...)):
 
 @router.post("/parse/offer-letter")
 async def parse_offer_letter(file: UploadFile = File(...), student_major: str = Form(...)):
-    """
-    parses offer letter and checks relevance to major.
-    """
+    """parses offer letter and checks relevance to student major."""
     temp_path = f"outputs/temp_{file.filename}"
     os.makedirs("outputs", exist_ok=True)
     
@@ -80,20 +65,10 @@ async def parse_offer_letter(file: UploadFile = File(...), student_major: str = 
         with open(temp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        # parse content
         raw = DocumentParser.parse(temp_path)
-        
         ai = get_ai_provider()
-        
-        # 1. extract details
         extracted_data = ai.extract_offer_details(raw['content'])
-
-        # 2. check relevance
         relevance = ai.verify_internship_relevance(raw['content'], student_major)
-        
-        # handle errors (lax constraint)
-        if extracted_data.get("error"):
-             pass 
         
         return {
             "extracted_data": extracted_data,
@@ -111,9 +86,7 @@ async def parse_offer_letter(file: UploadFile = File(...), student_major: str = 
 
 @router.get("/report/{filename}")
 async def get_report(filename: str):
-    """
-    downloads specific pdf report.
-    """
+    """downloads pdf report."""
     file_path = f"reports/{filename}"
     if os.path.exists(file_path):
         return FileResponse(file_path, media_type="application/pdf", filename=filename)
@@ -121,18 +94,14 @@ async def get_report(filename: str):
 
 @router.post("/allocation/recommend", response_model=AllocationResponse)
 async def recommend_guide(request: AllocationRequest):
-    """
-    recommends faculty guides based on requirements.
-    """
+    """recommends faculty guide based on expertise match."""
     engine = AllocationEngine()
     result = engine.allocate(request)
     return result
 
 @router.post("/allocation/validate-pair")
 async def validate_allocation_pair(request: dict):
-    """
-    validates manual student-faculty pair.
-    """
+    """validates manual student-faculty pairing."""
     engine = AllocationEngine()
     student = request.get("student")
     faculty = request.get("faculty")
@@ -144,10 +113,7 @@ async def validate_allocation_pair(request: dict):
 
 @router.get("/history")
 async def get_verification_history():
-    """
-    returns the full verification history from the master excel log.
-    useful for admin dashboards.
-    """
+    """returns verification history from master excel log."""
     log_path = "reports/master_log.xlsx"
     if not os.path.exists(log_path):
         return {"history": []}
