@@ -26,13 +26,13 @@ class WebScraper:
         search_url = "https://html.duckduckgo.com/html/"
         data = {'q': query}
         
-        for attempt in range(3):
+        # reduced to 2 attempts with shorter delays
+        for attempt in range(2):
             try:
-                # exponential backoff
-                delay = random.uniform(2.0, 5.0) + (1.5 * attempt)
+                delay = random.uniform(0.5, 1.5) + (0.5 * attempt)
                 time.sleep(delay)
                 
-                resp = self.session.post(search_url, data=data, headers=self._get_headers(), timeout=30)
+                resp = self.session.post(search_url, data=data, headers=self._get_headers(), timeout=10)
                 
                 if resp.status_code == 200:
                     soup = BeautifulSoup(resp.text, 'html.parser')

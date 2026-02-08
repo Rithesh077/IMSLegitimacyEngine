@@ -33,18 +33,16 @@ class GeminiProvider:
         
         errors = []
         
-        
-        # tool strategies
+        # reduced fallback - only try 2 models with 2 strategies each (max 4 calls)
+        fast_models = ["gemini-2.0-flash", "gemini-1.5-flash"]
         tool_configs = [
-            [{"google_search_retrieval": {}}],
-            [{"google_search": {}}],
-            None
+            ("google_search", [{"google_search": {}}]),
+            ("standard_llm", None)
         ]
 
-        for model_name in self.models:
-            for tools in tool_configs:
+        for model_name in fast_models:
+            for tool_name, tools in tool_configs:
                 try:
-                    tool_name = "google_search" if tools else "standard_llm"
                     logger.info(f"trying gemini model: {model_name} with {tool_name}")
                     
                     if tools:
@@ -52,10 +50,14 @@ class GeminiProvider:
                     else:
                         model = genai.GenerativeModel(model_name)
                     
-                    resp = model.generate_content(prompt)
+                    # timeout via generation config
+                    resp = model.generate_content(
+                        prompt,
+                        request_options={"timeout": 30}
+                    )
                     return self._parse_json(resp.text)
                 except Exception as e:
-                    err_msg = f"{model_name}({tool_name}): {str(e)}" 
+                    err_msg = f"{model_name}({tool_name}): {str(e)[:100]}" 
                     errors.append(err_msg)
                     continue
         
@@ -63,7 +65,7 @@ class GeminiProvider:
         return {
             "trust_score": 0, 
             "classification": "Unknown", 
-            "analysis": f"ai analysis failed: {'; '.join(errors[:3])}...", # truncate
+            "analysis": f"ai analysis failed: {'; '.join(errors[:2])}...",
             "flags": ["AI_ERROR"]
         }
 
