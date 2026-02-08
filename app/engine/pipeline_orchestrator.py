@@ -20,7 +20,9 @@ class PipelineOrchestrator:
         self.sentiment = SentimentEngine()
 
     async def run_pipeline(self, input_data: CompanyInput, db: AsyncSession = None) -> CredibilityAnalysis:
-        logger.info(f"pipeline start: {input_data.name}")
+        import time
+        pipeline_start = time.time()
+        logger.info(f"[DEBUG] pipeline start: {input_data.name}")
         
         signals = {
             "registry_link_found": False,
@@ -43,7 +45,8 @@ class PipelineOrchestrator:
         
         # registry lookup
         if input_data.registry_id:
-            logger.info("fetching registry data...")
+            step_start = time.time()
+            logger.info("[DEBUG] step 1: registry lookup...")
             web = input_data.website_urls[0] if input_data.website_urls else None
             
             breakdown, _ = await self.lookup_engine.check_registry_and_metadata(
@@ -66,8 +69,13 @@ class PipelineOrchestrator:
                 match_details["matches"].append("registry match")
             
             signals["registry_link_found"] = any(v.get("found") for k,v in breakdown.items() if k != "peopledatalabs.com")
+            logger.info(f"[DEBUG] step 1 done in {time.time() - step_start:.2f}s")
+        else:
+            logger.info("[DEBUG] step 1: skipped (no registry_id)")
 
         # digital footprint
+        step_start = time.time()
+        logger.info("[DEBUG] step 2: digital footprint...")
         if input_data.linkedin_url:
             signals["linkedin_verified"] = await asyncio.to_thread(
                 self.scraper.verify_url_owner, input_data.linkedin_url, input_data.name
@@ -81,6 +89,7 @@ class PipelineOrchestrator:
                  if is_verified:
                      signals["website_content_match"] = True
                      break
+        logger.info(f"[DEBUG] step 2 done in {time.time() - step_start:.2f}s")
         
         # email domain check
         if input_data.hr_email and "@" in input_data.hr_email:
@@ -102,7 +111,8 @@ class PipelineOrchestrator:
                     match_details["matches"].append("university email detected (warning)")
 
         # hr & address verification
-        logger.info("verifying hr and address...")
+        step_start = time.time()
+        logger.info("[DEBUG] step 3: hr/address verification...")
         hr_task = asyncio.to_thread(self.scraper.verify_association, input_data.name, input_data.hr_name)
         
         if input_data.registered_address:
@@ -111,6 +121,7 @@ class PipelineOrchestrator:
         else:
             hr_check = await hr_task
             addr_check = {"verified": False, "score": 0}
+        logger.info(f"[DEBUG] step 3 done in {time.time() - step_start:.2f}s")
 
         if hr_check["verified"]:
             signals["hr_verified"] = True
@@ -132,6 +143,8 @@ class PipelineOrchestrator:
         status = "Verified" if score >= 60 else "Pending"
 
         # ai analysis
+        step_start = time.time()
+        logger.info("[DEBUG] step 4: ai analysis...")
         l2_context = {
             "signals": signals, 
             "pdl_data": pdl_data,
@@ -141,9 +154,11 @@ class PipelineOrchestrator:
         }
         ai_res = await self.sentiment.analyze(input_data.name, l2_context)
         ai_data = ai_res.get("ai_analysis", {})
+        logger.info(f"[DEBUG] step 4 done in {time.time() - step_start:.2f}s")
         
         final_score = float(ai_data.get("trust_score", score))
         final_tier = ai_data.get("classification", "Pending")
+        logger.info(f"[DEBUG] pipeline complete in {time.time() - pipeline_start:.2f}s - final_score: {final_score}")
         
         analysis_obj = CredibilityAnalysis(
              trust_score=final_score,

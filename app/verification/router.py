@@ -19,12 +19,21 @@ logger = logging.getLogger(__name__)
 @router.post("/verify", response_model=CredibilityAnalysis)
 async def verify_company(data: CompanyInput, db: AsyncSession = Depends(get_db)):
     """verifies company legitimacy via registry, footprint, and ai analysis."""
+    import time
+    start_time = time.time()
+    logger.info(f"[DEBUG] /verify endpoint hit - company: {data.name}")
+    logger.info(f"[DEBUG] request payload: name={data.name}, country={data.country}, hr={data.hr_name}")
+    
     try:
         orchestrator = PipelineOrchestrator()
+        logger.info("[DEBUG] starting pipeline...")
         result = await orchestrator.run_pipeline(data, db)
+        elapsed = time.time() - start_time
+        logger.info(f"[DEBUG] pipeline completed in {elapsed:.2f}s - score: {result.trust_score}")
         return result
     except Exception as e:
-        logger.error(f"verification failed: {e}")
+        elapsed = time.time() - start_time
+        logger.error(f"[DEBUG] verification failed after {elapsed:.2f}s: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/parse/recruiter-registration")
