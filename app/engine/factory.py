@@ -10,6 +10,7 @@ def get_ai_provider():
     provider_type = os.getenv("AI_PROVIDER", "gemini").lower()
     
     if provider_type == "slm":
-        # placeholder for future slm provider
-        # return SLMProvider()       
-    return GeminiProvider()
+        # return SLMProvider()
+        pass
+        
+    return GeminiProvider()       

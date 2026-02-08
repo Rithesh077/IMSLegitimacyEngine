@@ -1,6 +1,7 @@
 from typing import Dict, Optional, Any
 import logging
 import json
+import asyncio
 from app.engine.providers import ZaubaProvider, OpenCorporatesProvider
 from app.engine.pdl_provider import PeopleDataLabsProvider
 
@@ -18,9 +19,6 @@ class LookupEngine:
         self.opencorps = OpenCorporatesProvider()
         self.pdl = PeopleDataLabsProvider()
 
-    async def check_registry_presence(self, name: str, country: str, registration_id: str) -> Dict[str, bool]:
-        pass
-
     async def check_registry_and_metadata(self, name: str, country: str, registration_id: Optional[str], linkedin_url: str = None, website: str = None) -> tuple[Dict[str, Any], Dict[str, Any]]:
         # 1. try cache
         # key now allows "None" id
@@ -30,13 +28,13 @@ class LookupEngine:
         if registration_id:
             logger.info(f"verifying registry: {registration_id}")
             provider = self._get_provider(country)
-            breakdown = provider.check_registry_signal(registration_id, name)
+            breakdown = await asyncio.to_thread(provider.check_registry_signal, registration_id, name)
         
         # 3. pdl enrichment
         try:
             logger.info("checking pdl...")
             # Pass empty ID if None
-            pdl_data = self.pdl.check_registry_signal(registration_id or "", name, linkedin_url, website)
+            pdl_data = await asyncio.to_thread(self.pdl.check_registry_signal, registration_id or "", name, linkedin_url, website)
             breakdown.update(pdl_data)
         except Exception as e:
             logger.error(f"pdl lookup failed: {e}")
