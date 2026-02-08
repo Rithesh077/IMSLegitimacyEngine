@@ -71,4 +71,3 @@ Ensure this service has the **same `DATABASE_URL`** as the main backend. It need
 | **500 Server Error** | Internal Crash | Check `reports/master_log.xlsx` or server logs. |
 
 ---
-**Maintained by**: Integration Team
