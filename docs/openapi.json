@@ -1,0 +1,725 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "company verification service",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/verification/verify": {
+      "post": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Verify Company",
+        "description": "verifies company legitimacy using:\n1. registry lookup\n2. digital footprint analysis\n3. hr & address verification\n4. ai analysis",
+        "operationId": "verify_company_verification_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredibilityAnalysis"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/verification/parse/recruiter-registration": {
+      "post": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Parse Recruiter Registration",
+        "description": "parses recruiter registration doc (pdf/docx).\nreturns structured data (name, country, hr info).",
+        "operationId": "parse_recruiter_registration_verification_parse_recruiter_registration_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_parse_recruiter_registration_verification_parse_recruiter_registration_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/verification/parse/offer-letter": {
+      "post": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Parse Offer Letter",
+        "description": "parses offer letter and checks relevance to major.",
+        "operationId": "parse_offer_letter_verification_parse_offer_letter_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_parse_offer_letter_verification_parse_offer_letter_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/verification/report/{filename}": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Get Report",
+        "description": "downloads specific pdf report.",
+        "operationId": "get_report_verification_report__filename__get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Filename"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/verification/allocation/recommend": {
+      "post": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Recommend Guide",
+        "description": "recommends faculty guides based on requirements.",
+        "operationId": "recommend_guide_verification_allocation_recommend_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllocationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllocationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/verification/allocation/validate-pair": {
+      "post": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Validate Allocation Pair",
+        "description": "validates manual student-faculty pair.",
+        "operationId": "validate_allocation_pair_verification_allocation_validate_pair_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/verification/history": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Get Verification History",
+        "description": "returns the full verification history from the master excel log.\nuseful for admin dashboards.",
+        "operationId": "get_verification_history_verification_history_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Health Check",
+        "description": "public endpoint to check service health.",
+        "operationId": "health_check__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AllocationRequest": {
+        "properties": {
+          "student": {
+            "$ref": "#/components/schemas/StudentProfile"
+          },
+          "available_faculty": {
+            "items": {
+              "$ref": "#/components/schemas/FacultyProfile"
+            },
+            "type": "array",
+            "title": "Available Faculty"
+          }
+        },
+        "type": "object",
+        "required": [
+          "student",
+          "available_faculty"
+        ],
+        "title": "AllocationRequest"
+      },
+      "AllocationResponse": {
+        "properties": {
+          "recommended_faculty_id": {
+            "type": "string",
+            "title": "Recommended Faculty Id"
+          },
+          "faculty_name": {
+            "type": "string",
+            "title": "Faculty Name"
+          },
+          "confidence_score": {
+            "type": "number",
+            "title": "Confidence Score"
+          },
+          "reasoning": {
+            "type": "string",
+            "title": "Reasoning"
+          },
+          "is_random_fallback": {
+            "type": "boolean",
+            "title": "Is Random Fallback"
+          },
+          "alternatives": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Alternatives",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "recommended_faculty_id",
+          "faculty_name",
+          "confidence_score",
+          "reasoning",
+          "is_random_fallback"
+        ],
+        "title": "AllocationResponse"
+      },
+      "Body_parse_offer_letter_verification_parse_offer_letter_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          },
+          "student_major": {
+            "type": "string",
+            "title": "Student Major"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "student_major"
+        ],
+        "title": "Body_parse_offer_letter_verification_parse_offer_letter_post"
+      },
+      "Body_parse_recruiter_registration_verification_parse_recruiter_registration_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_parse_recruiter_registration_verification_parse_recruiter_registration_post"
+      },
+      "CompanyInput": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "country": {
+            "type": "string",
+            "title": "Country"
+          },
+          "hr_name": {
+            "type": "string",
+            "title": "Hr Name"
+          },
+          "hr_email": {
+            "type": "string",
+            "title": "Hr Email"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "registered_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registered Address"
+          },
+          "registry_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registry Id"
+          },
+          "document_content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Content"
+          },
+          "manual_verification": {
+            "type": "boolean",
+            "title": "Manual Verification",
+            "default": false
+          },
+          "linkedin_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linkedin Url"
+          },
+          "website_urls": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website Urls"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "country",
+          "hr_name",
+          "hr_email"
+        ],
+        "title": "CompanyInput"
+      },
+      "CredibilityAnalysis": {
+        "properties": {
+          "trust_score": {
+            "type": "number",
+            "title": "Trust Score"
+          },
+          "trust_tier": {
+            "type": "string",
+            "title": "Trust Tier"
+          },
+          "verification_status": {
+            "type": "string",
+            "title": "Verification Status"
+          },
+          "review_count": {
+            "type": "integer",
+            "title": "Review Count"
+          },
+          "sentiment_summary": {
+            "type": "string",
+            "title": "Sentiment Summary"
+          },
+          "scraped_sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scraped Sources"
+          },
+          "red_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Red Flags"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trust_score",
+          "trust_tier",
+          "verification_status",
+          "review_count",
+          "sentiment_summary",
+          "scraped_sources",
+          "red_flags",
+          "details"
+        ],
+        "title": "CredibilityAnalysis"
+      },
+      "FacultyProfile": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "department": {
+            "type": "string",
+            "title": "Department"
+          },
+          "expertise": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Expertise"
+          },
+          "current_load": {
+            "type": "integer",
+            "title": "Current Load",
+            "default": 0
+          },
+          "max_capacity": {
+            "type": "integer",
+            "title": "Max Capacity",
+            "default": 10
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "department",
+          "expertise"
+        ],
+        "title": "FacultyProfile"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "StudentProfile": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "internship_role": {
+            "type": "string",
+            "title": "Internship Role"
+          },
+          "internship_description": {
+            "type": "string",
+            "title": "Internship Description"
+          },
+          "skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skills",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "internship_role",
+          "internship_description"
+        ],
+        "title": "StudentProfile"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Legitimacy-engine-key"
+      }
+    }
+  }
+}

@@ -1,96 +1,68 @@
-# Company Legitimacy Verification Service
+# Company Legitimacy & Allocation Service
 
-A standalone microservice for assessing company legitimacy using a multi-layered verification pipeline.
+A multi-modal microservice for verifying company legitimacy and allocating faculty guides to students. This system combines official registry lookups (MCA/CIN), AI-driven sentiment analysis (Gemini), and digital footprint verification.
 
 ## Features
-*   **Dual-Layer Verification**: Combines Registry Lookups (Layer 1) with AI Analysis (Layer 2).
-*   **Trust Score**: Generates a 0-100 confidence score and trust classification (High/Review/Low).
-*   **Microservice Architecture**: Decoupled FastAPI application ready for integration.
-*   **Real-time Analysis**: Live verification without queuing dependencies.
+
+*   **Multi-Layer Verification**:
+    *   **Layer 1**: Official Registry Lookup (India MCA, etc.).
+    *   **Layer 2**: Digital Footprint (LinkedIn, Website, Email Domain).
+    *   **Layer 3**: AI Sentiment Analysis & Scam Detection.
+*   **Document Parsing**: Extract data from Recruiter Registrations and Offer Letters (PDF/Docx).
+*   **Faculty Allocation**: Intelligent matching of students to faculty guides based on domain expertise and workload.
+*   **Database Integrated**: Persists all profiles and allocations to PostgreSQL.
+*   **Excel Logging**: Maintains a backup log in `reports/master_log.xlsx`.
 
 ## Setup
 
-1.  **Navigate to the service directory:**
-    ```bash
-    cd verification_engine
-    ```
-
-2.  **Install Dependencies:**
+1.  **Install Dependencies**:
     ```bash
     pip install -r requirements.txt
     ```
 
-3.  **Environment Configuration:**
-    Create a `.env` file in the root of `verification_engine`:
+2.  **Environment Variables**:
+    Create a `.env` file:
     ```ini
-    GEMINI_API_KEY=your_google_api_key_here
-    PDL_API_KEY=your_pdl_key_here (Optional)
-    REDIS_HOST=localhost (Optional, currently disabled)
+    DATABASE_URL=postgresql+asyncpg://user:pass@localhost/dbname
+    GEMINI_API_KEY=your_key_here
+    API_ACCESS_KEY=your_secure_secret (Generate using scripts/generate_key.py)
+    ```
+
+3.  **Initialize Database**:
+    Run this script once to create tables (`corporate_profiles`, `allocations`, `User`):
+    ```bash
+    python scripts/init_db.py
     ```
 
 ## Running the Service
 
-Start the server using Uvicorn:
-
+### Start Server
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8001
 ```
+*(Port 8001 is default to avoid conflict with other services)*
 
-The API will be available at: `http://localhost:8001`
-
-## API Reference
-
-### Verify Company
-**Endpoint:** `POST /verification/verify`
-
-**Request Body:**
-```json
-{
-  "name": "Company Name",
-  "country": "Country Code (e.g., India, USA)",
-  "hr_name": "HR/Recruiter Name",
-  "hr_email": "recruiter@company.com",
-  "industry": "Technology",
-  "website_urls": ["https://company.com"],
-  "linkedin_url": "https://linkedin.com/company/example",
-  "registry_id": "Optional Registry ID (CIN/EIN)",
-  "registered_address": "Optional Physical Address"
-}
+### Verify Deployment
+We have a self-contained test script to verify the API and Database connection before going live:
+```bash
+python scripts/test_deployment.py
 ```
 
-**Response:**
-```json
-{
-  "trust_score": 95.0,
-  "trust_tier": "High",
-  "verification_status": "Verified",
-  "sentiment_summary": "Legitimate entity. Verified via ...",
-  "red_flags": [],
-  "details": {
-      "signals": { ... }
-  }
-}
-```
+## API Documentation
 
-## Integration Example (Python)
+**See [docs/INTEGRATION.md](docs/INTEGRATION.md) for the complete API Reference.**
 
-```python
-import httpx
-import asyncio
+### Quick Endpoint Summary
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/verification/verify` | Full company legitimacy check |
+| `POST` | `/verification/parse/offer-letter` | Extract details from offer letters |
+| `POST` | `/verification/allocation/recommend` | Get faculty guide recommendation |
+| `GET` | `/verification/history` | View verification logs |
 
-async def verify_remote():
-    url = "http://localhost:8001/verification/verify"
-    payload = {
-        "name": "Zerodha",
-        "country": "India",
-        "hr_name": "Venu Madhav",
-        "hr_email": "venu@zerodha.com"
-    }
-    
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, json=payload)
-        print(response.json())
-
-if __name__ == "__main__":
-    asyncio.run(verify_remote())
-```
+## Project Structure
+*   `app/engine`: Core logic (Orchestrator, Scraper, Sentiment).
+*   `app/models`: Database schemas (SQLAlchemy).
+*   `app/verification`: API Routes.
+*   `docs/`: Integration guides and API specs.
+*   `scripts/`: Utilities for DB init, key generation, and testing.

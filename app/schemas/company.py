@@ -16,6 +16,7 @@ class CompanyInput(BaseModel):
     # Optional Signals
     linkedin_url: Optional[str] = None
     website_urls: Optional[List[str]] = Field(default_factory=list)
+    user_id: Optional[str] = None # Required for DB persistence
 
 class VerificationResult(BaseModel):
     verified: bool

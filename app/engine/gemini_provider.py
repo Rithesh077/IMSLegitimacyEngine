@@ -166,6 +166,39 @@ class GeminiProvider:
         
         return data
 
+    def verify_internship_relevance(self, raw_text: str, student_context: str) -> Dict[str, Any]:
+        """
+        verifies if the internship description is relevant to the student's programme/subjects.
+        """
+        if not self.api_key:
+            return {}
+
+        prompt = f"""
+        act as an academic internship coordinator. 
+        determine if the identified internship role and tasks are academically relevant for a student studying: "{student_context}".
+
+        offer letter text:
+        {raw_text[:4000]}
+
+        task:
+        1. identify the job role and key responsibilities from the text.
+        2. compare them against the curriculum and career paths of the subjects in the student's programme (e.g. if "{student_context}" includes 'statistics', then data analyst roles are relevant).
+        3. strictly filter out:
+           - completely irrelevant roles (e.g. "social media marketing" for a physics student).
+           - generic non-technical roles (e.g. "campus ambassador", "data entry").
+           - mlm/pyramid scheme type roles.
+
+        output json:
+        {{
+            "is_relevant": bool,
+            "confidence_score": float (0-100),
+            "reasoning": "brief explanation of why it fits or does not fit the programme/subjects.",
+            "detected_role": "str"
+        }}
+        """
+        
+        return self._generate_with_fallback(prompt)
+
     def match_guide(self, student_json: Dict[str, Any], faculty_list: list) -> Dict[str, Any]:
         """
         matches a student to the best faculty based on internship description vs expertise.
@@ -174,7 +207,7 @@ class GeminiProvider:
             return {}
 
         prompt = f"""
-        Act as an Academic Internship Coordinator. Match the student to the best faculty guide.
+        Act as an Academic Internship Coordinator. Match the student to the best faculty guides based on expertise.
 
         STUDENT INTERNSHIP:
         Role: {student_json.get('internship_role')}
@@ -186,17 +219,22 @@ class GeminiProvider:
 
         TASK:
         1. Compare the Student's "Internship Description" with each Faculty's "Expertise".
-        2. Identify the single best match.
-        3. Assign a Confidence Score (0-100). 
+        2. Select the TOP 3 most suitable faculty members.
+        3. Assign an Expertise Score (0-100) for each.
            - >80: Perfect Match (Direct expertise alignment).
            - 60-80: Good Match (Related field).
            - <60: Weak Match.
 
         OUTPUT JSON:
         {{
-            "best_faculty_id": "str",
-            "confidence_score": float,
-            "reasoning": "brief explanation of why this faculty is better than others"
+            "ranked_matches": [
+                {{
+                    "faculty_id": "str",
+                    "faculty_name": "str",
+                    "expertise_score": float,
+                    "reasoning": "brief explanation"
+                }}
+            ]
         }}
         """
 
