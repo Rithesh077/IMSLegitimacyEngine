@@ -12,8 +12,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
 COPY app ./app
-# Copy inputs if needed by the application logic
-COPY inputs ./inputs
+COPY docs ./docs
+COPY scripts ./scripts
+
+# Create runtime directories (inputs, outputs, reports)
+RUN mkdir -p inputs outputs reports
 
 # Make port 10000 available to the world outside this container
 EXPOSE 10000
