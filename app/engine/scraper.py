@@ -1,8 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
-import random
-import time
 from typing import List, Dict, Any
 from thefuzz import fuzz
 
@@ -27,10 +25,7 @@ class WebScraper:
         
         for attempt in range(2):
             try:
-                delay = random.uniform(0.5, 1.5) + (0.5 * attempt)
-                time.sleep(delay)
-                
-                resp = self.session.post(search_url, data=data, headers=self._get_headers(), timeout=10)
+                resp = self.session.post(search_url, data=data, headers=self._get_headers(), timeout=4)
                 
                 if resp.status_code == 200:
                     soup = BeautifulSoup(resp.text, 'html.parser')

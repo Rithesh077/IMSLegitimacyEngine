@@ -1,0 +1,224 @@
+{
+    "info": {
+        "_postman_id": "legitimacy-engine-v1",
+        "name": "Legitimacy Engine API",
+        "description": "API collection for the Company Legitimacy Pipeline. Includes endpoints for offer parsing, company verification, and faculty allocation.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1. Health Check",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "2. Parse Offer Letter (Text)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Legitimacy-engine-key",
+                        "value": "{{api_key}}",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                        {
+                            "key": "offer_text",
+                            "value": "Offer of internship at DataTech Solutions Pvt Ltd. Role: Data Engineer. Stipend: 30000/month. HR: hiring@datatech.io. Mumbai, India.",
+                            "type": "text"
+                        },
+                        {
+                            "key": "student_programme",
+                            "value": "BTech Computer Science",
+                            "type": "text"
+                        }
+                    ]
+                },
+                "url": {
+                    "raw": "{{base_url}}/verification/parse/offer-letter",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "verification",
+                        "parse",
+                        "offer-letter"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "3. Verify Company",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Legitimacy-engine-key",
+                        "value": "{{api_key}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"name\": \"Wipro Limited\",\n    \"country\": \"India\",\n    \"hr_name\": \"HR Team\",\n    \"hr_email\": \"careers@wipro.com\",\n    \"registry_id\": \"L32102KA1945PLC020800\",\n    \"website_urls\": [\"https://www.wipro.com\"]\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/verification/verify",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "verification",
+                        "verify"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "4. Recommend Faculty",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Legitimacy-engine-key",
+                        "value": "{{api_key}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"student\": {\n        \"id\": \"S001\",\n        \"name\": \"Rahul Test\",\n        \"internship_role\": \"Machine Learning Engineer\",\n        \"internship_description\": \"Building ML models for predictions\",\n        \"skills\": [\"Python\", \"TensorFlow\"]\n    },\n    \"available_faculty\": [\n        {\n            \"id\": \"F001\",\n            \"name\": \"Dr. Ramesh\",\n            \"department\": \"Computer Science\",\n            \"expertise\": [\"Machine Learning\", \"AI\"],\n            \"interests\": [\"Computer Vision\"],\n            \"current_load\": 3,\n            \"max_capacity\": 8\n        }\n    ]\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/verification/allocation/recommend",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "verification",
+                        "allocation",
+                        "recommend"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "5. Validate Manual Pair",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Legitimacy-engine-key",
+                        "value": "{{api_key}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"student\": {\n        \"internship_role\": \"Data Scientist\",\n        \"internship_description\": \"Building ML models\"\n    },\n    \"faculty\": {\n        \"expertise\": [\"Machine Learning\", \"Data Science\"]\n    }\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/verification/allocation/validate-pair",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "verification",
+                        "allocation",
+                        "validate-pair"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "6. View History",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Legitimacy-engine-key",
+                        "value": "{{api_key}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/verification/history",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "verification",
+                        "history"
+                    ]
+                }
+            },
+            "response": []
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "https://imslegitimacyengine.onrender.com",
+            "type": "string"
+        },
+        {
+            "key": "api_key",
+            "value": "n9MglUvVhYaF4jhq5I5QGaBQlCDFjwPZdU6xE9_fu6U",
+            "type": "string"
+        }
+    ]
+}
