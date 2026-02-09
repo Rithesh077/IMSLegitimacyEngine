@@ -56,23 +56,54 @@ async def parse_recruiter_registration(file: UploadFile = File(...)):
             os.remove(temp_path)
 
 @router.post("/parse/offer-letter")
-async def parse_offer_letter(file: UploadFile = File(...), student_major: str = Form(...)):
-    """parses offer letter and checks relevance to student major."""
-    temp_path = f"outputs/temp_{file.filename}"
-    os.makedirs("outputs", exist_ok=True)
+async def parse_offer_letter(
+    file: UploadFile = File(None),
+    student_programme: str = Form(None),
+    offer_text: str = Form(None)
+):
+    """
+    parses offer letter and checks relevance to student's programme.
     
+    accepts either:
+    - file upload (pdf/docx) + student_programme
+    - offer_text (raw text) + student_programme
+    
+    student_programme examples:
+    - "bachelor of science in economics, statistics and mathematics"
+    - "btech computer science and engineering"
+    - "msc data science"
+    """
+    logger.info(f"offer-letter endpoint hit - file: {file.filename if file else 'none'}, programme: {student_programme}")
+    
+    if not file and not offer_text:
+        raise HTTPException(status_code=400, detail="must provide either 'file' or 'offer_text'")
+    
+    programme_context = student_programme if student_programme else "not specified"
+    
+    temp_path = None
     try:
-        with open(temp_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-            
-        raw = DocumentParser.parse(temp_path)
+        if file:
+            temp_path = f"outputs/temp_{file.filename}"
+            os.makedirs("outputs", exist_ok=True)
+            with open(temp_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            raw = DocumentParser.parse(temp_path)
+            content = raw.get('content', '')
+        else:
+            content = offer_text
+        
+        logger.info(f"content length: {len(content)} chars, programme: {programme_context}")
+        
         ai = get_ai_provider()
-        extracted_data = ai.extract_offer_details(raw['content'])
-        relevance = ai.verify_internship_relevance(raw['content'], student_major)
+        extracted_data = ai.extract_offer_details(content)
+        relevance = ai.verify_internship_relevance(content, programme_context)
+        
+        logger.info(f"extraction complete - is_relevant: {relevance.get('is_relevant', 'n/a')}")
         
         return {
             "extracted_data": extracted_data,
-            "relevance_analysis": relevance
+            "relevance_analysis": relevance,
+            "student_programme": programme_context
         }
         
     except HTTPException as he:
@@ -81,7 +112,7 @@ async def parse_offer_letter(file: UploadFile = File(...), student_major: str = 
         logger.error(f"parsing failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        if os.path.exists(temp_path):
+        if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
 
 @router.get("/report/{filename}")

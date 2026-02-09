@@ -7,19 +7,13 @@ from docx import Document
 logger = logging.getLogger(__name__)
 
 class DocumentParser:
-    """
-    generic parser for pdf and docx
-    extracts raw text
-    """
+    """generic parser for pdf, docx, and txt files."""
     
     @staticmethod
     def parse(file_path: str) -> Dict[str, Any]:
-        """
-        parse based on extension
-        returns dict with content and metadata
-        """
+        """parses document and returns content with metadata."""
         if not os.path.exists(file_path):
-            raise FileNotFoundError(f"File not found: {file_path}")
+            raise FileNotFoundError(f"file not found: {file_path}")
             
         ext = os.path.splitext(file_path)[1].lower()
         
@@ -32,14 +26,15 @@ class DocumentParser:
                  with open(file_path, 'r', encoding='utf-8') as f:
                      return {"content": f.read(), "metadata": {"type": "text"}}
             else:
-                raise ValueError(f"Unsupported file format: {ext}")
+                raise ValueError(f"unsupported file format: {ext}")
                 
         except Exception as e:
-            logger.error(f"Failed to parse {file_path}: {e}")
+            logger.error(f"failed to parse {file_path}: {e}")
             return {"content": "", "metadata": {"error": str(e)}}
 
     @staticmethod
     def _parse_pdf(file_path: str) -> Dict[str, Any]:
+        """extracts text from pdf."""
         reader = PdfReader(file_path)
         text = ""
         meta = {}
@@ -57,6 +52,7 @@ class DocumentParser:
 
     @staticmethod
     def _parse_docx(file_path: str) -> Dict[str, Any]:
+        """extracts text from docx."""
         doc = Document(file_path)
         text = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
         
