@@ -1,18 +1,16 @@
 import requests
 from bs4 import BeautifulSoup
-
 from fake_useragent import UserAgent
 import random
 import time
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Any
 from thefuzz import fuzz
 
 class WebScraper:
-    """Robust web search and content extraction using DuckDuckGo and randomized headers."""
+    """web search and content extraction using duckduckgo."""
     
     def __init__(self):
         self.ua = UserAgent()
-        self.session = requests.Session()
         self.session = requests.Session()
 
     def _get_headers(self) -> Dict[str, str]:
@@ -23,10 +21,10 @@ class WebScraper:
         }
 
     def search_web(self, query: str, num_results: int = 3) -> List[Dict[str, str]]:
+        """performs web search via duckduckgo html."""
         search_url = "https://html.duckduckgo.com/html/"
         data = {'q': query}
         
-        # reduced to 2 attempts with shorter delays
         for attempt in range(2):
             try:
                 delay = random.uniform(0.5, 1.5) + (0.5 * attempt)
@@ -66,10 +64,8 @@ class WebScraper:
         
         return []
 
-
-
     def verify_url_owner(self, url: str, expected_name: str) -> bool:
-        # reverse lookup the url to see if title matches expected name
+        """checks if url belongs to expected company via reverse search."""
         results = self.search_web(url, num_results=3)
         if not results: return False
         
@@ -78,9 +74,11 @@ class WebScraper:
         return score > 70
 
     def calculate_fuzzy_match(self, str1: str, str2: str) -> int:
+        """calculates fuzzy match score between two strings."""
         return fuzz.token_set_ratio(str1.lower(), str2.lower())
 
     def perform_reputation_search(self, company_name: str) -> List[Dict[str, str]]:
+        """searches for company reviews, complaints, and scam reports."""
         queries = [
             f"{company_name} reviews",
             f"{company_name} scam fraud complaint",
@@ -100,12 +98,8 @@ class WebScraper:
         return aggregated
 
     def verify_association(self, entity1: str, entity2: str) -> Dict[str, Any]:
-        """
-        Verifies if entity2 is associated with entity1 via web search.
-        Returns: { verified: bool, score: int, source: str }
-        """
+        """verifies if entity2 is associated with entity1 via web search."""
         query = f'{entity1} {entity2}'
-        print(f"Verifying association: {query}")
         results = self.search_web(query, num_results=5)
         
         best_score = 0
@@ -114,12 +108,9 @@ class WebScraper:
         for res in results:
             text = (res.get('title', '') + " " + res.get('snippet', '')).lower()
             
-            # Check if both entities appear in the text
-            # We use fuzzy partial match for robustness
             s1 = fuzz.partial_token_set_ratio(entity1.lower(), text)
             s2 = fuzz.partial_token_set_ratio(entity2.lower(), text)
             
-            # Combined confidence: both must be present
             if s1 > 80 and s2 > 80:
                 avg_score = (s1 + s2) // 2
                 if avg_score > best_score:
