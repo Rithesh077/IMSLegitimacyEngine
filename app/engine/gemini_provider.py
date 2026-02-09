@@ -64,8 +64,8 @@ class GeminiProvider:
         """generates cache key from prompt hash."""
         return hashlib.md5(prompt.encode('utf-8')).hexdigest()
 
-    def _generate_with_fallback(self, prompt: str, max_retries: int = 1, cache_ttl: int = 86400) -> Dict[str, Any]:
-        """fast generation with model fallback and redis cache."""
+    def _generate_with_fallback(self, prompt: str, cache_ttl: int = 86400) -> Dict[str, Any]:
+        """fast generation with proper model fallback and redis cache."""
         cache_key = f"gemini:{self._get_cache_key(prompt)}"
         
         cached = cache_get(cache_key)
@@ -75,33 +75,35 @@ class GeminiProvider:
         errors = []
         
         for model_name in self.models:
-            for attempt in range(max_retries):
-                try:
-                    model = genai.GenerativeModel(model_name)
-                    resp = model.generate_content(
-                        prompt,
-                        request_options={"timeout": 15}
-                    )
+            try:
+                model = genai.GenerativeModel(model_name)
+                resp = model.generate_content(
+                    prompt,
+                    request_options={"timeout": 15}
+                )
+                
+                result = self._parse_json(resp.text)
+                if result and not result.get("error"):
+                    cache_set(cache_key, result, cache_ttl)
+                    logger.info(f"success with {model_name}")
+                    return result
                     
-                    result = self._parse_json(resp.text)
-                    if result and not result.get("error"):
-                        cache_set(cache_key, result, cache_ttl)
-                        return result
-                        
-                except Exception as e:
-                    err_str = str(e)
-                    errors.append(f"{model_name}: {err_str[:60]}")
-                    
-                    if "429" in err_str or "quota" in err_str.lower():
-                        self._rotate_key()
-                        time.sleep(0.3)
-                    elif "500" in err_str or "503" in err_str:
-                        time.sleep(0.2)
-                    
+            except Exception as e:
+                err_str = str(e)
+                errors.append(f"{model_name}: {err_str[:50]}")
+                
+                if "429" in err_str or "quota" in err_str.lower():
+                    self._rotate_key()
+                    logger.warning(f"{model_name} quota hit, trying next model...")
+                    continue  # immediately try next model
+                elif "500" in err_str or "503" in err_str:
+                    time.sleep(0.2)
                     continue
+                else:
+                    continue  # try next model on any error
         
-        logger.error(f"all models failed: {errors[:2]}")
-        return {"error": "all models failed", "details": errors[:2]}
+        logger.error(f"all models failed: {errors[:3]}")
+        return {"error": "all models failed", "details": errors[:3]}
 
     def analyze_company(self, company_name: str, layer1_data: Dict[str, Any], reputation_data: list) -> Dict[str, Any]:
         """ai analysis of company legitimacy."""
