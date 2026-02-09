@@ -239,20 +239,25 @@ output json:
         return self._generate_with_fallback(prompt)
 
     def match_guide(self, student_json: Dict[str, Any], faculty_list: list) -> Dict[str, Any]:
-        """matches student to best faculty guides."""
+        """matches student to best faculty guides based on expertise and interests."""
         if not self.api_keys:
             return {}
 
         prompt = f"""
-match this student to the best faculty guides based on internship-expertise alignment.
+match this student to the best faculty guides based on alignment with faculty expertise and research interests.
 
 STUDENT INTERNSHIP:
 role: {student_json.get('internship_role')}
 description: {student_json.get('internship_description')}
 skills: {student_json.get('skills')}
 
-FACULTY LIST:
+FACULTY LIST (includes expertise and interests):
 {json.dumps(faculty_list, indent=2)}
+
+MATCHING CRITERIA:
+1. expertise match: faculty's area of expertise aligns with student's internship role/skills
+2. interest match: faculty's research interests overlap with student's work description
+3. prioritize faculty with BOTH matching expertise AND relevant interests
 
 select top 3 matches with expertise scores (0-100).
 
@@ -263,7 +268,7 @@ output json:
             "faculty_id": "id",
             "faculty_name": "name",
             "expertise_score": 0-100,
-            "reasoning": "brief reason"
+            "reasoning": "brief reason mentioning expertise/interest match"
         }}
     ]
 }}
