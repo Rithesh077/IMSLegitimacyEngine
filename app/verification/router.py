@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends, BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.company import CompanyInput, CredibilityAnalysis
@@ -17,11 +17,11 @@ router = APIRouter(prefix="/verification", tags=["Verification"])
 logger = logging.getLogger(__name__)
 
 @router.post("/verify", response_model=CredibilityAnalysis)
-async def verify_company(data: CompanyInput, db: AsyncSession = Depends(get_db)):
+async def verify_company(data: CompanyInput, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     """company verification - returns initial analysis (registry+hr+ai), background checks update db later"""
     try:
         orchestrator = PipelineOrchestrator()
-        result = await orchestrator.run_fast_pipeline(data, db)
+        result = await orchestrator.run_fast_pipeline(data, db, background_tasks)
         return result
     except Exception as e:
         logger.error(f"verification: {e}")
