@@ -41,7 +41,20 @@ This guide documents the core endpoints for the Company Legitimacy Pipeline.
 
 ### Verify Company Legitimacy
 - **Endpoint**: `POST /verification/verify`
-- **Description**: Runs comprehensive background checks on the company (MCA Registry, LinkedIn, Web Sentiment).
+- **Response Time**: ~5-8 seconds
+
+#### Verification Flow
+| Phase | Checks | Timing |
+|-------|--------|--------|
+| **Mandatory (parallel)** | Registry lookup, HR verification, Email domain, AI analysis | Before response (~5s) |
+| **Optional (background)** | LinkedIn, Website, Address verification | After response |
+| **DB Update** | Final score saved | **After** background checks complete |
+
+> **Important for Frontend:**
+> The API returns an initial trust score based on mandatory checks. The final score (including LinkedIn/Website verification) is updated in the database asynchronously. 
+> - If you need the *absolute final* score, poll the `GET /verification/history` endpoint after ~10-20 seconds.
+> - For most cases, the initial score (Registry + HR + AI) is sufficient for immediate decision making.
+
 - **Input (JSON)**:
   ```json
   {
@@ -56,19 +69,29 @@ This guide documents the core endpoints for the Company Legitimacy Pipeline.
 - **Output (JSON)**:
   ```json
   {
-    "trust_score": 95.0,
+    "trust_score": 75.0,
     "trust_tier": "Verified",
     "verification_status": "Verified",
+    "review_count": 0,
+    "sentiment_summary": "Company found on registry, hr verified",
+    "scraped_sources": [],
+    "red_flags": [],
     "details": {
       "signals": {
         "registry_link_found": true,
         "email_domain_match": true,
-        "website_match": true
-      }
-    },
-    "report_path": "reports/Wipro_Limited_Report.pdf"
+        "hr_verified": true,
+        "linkedin_verified": false,
+        "website_verified": false
+      },
+      "registry_breakdown": { ... },
+      "report_path": "reports/Wipro_Limited_Report.pdf",
+      "note": "Initial score. Background checks in progress."
+    }
   }
   ```
+
+> **Note:** `trust_score` and `details` will be updated in the database after background checks (LinkedIn/Website) completion. Full PDF report available at `report_path`.
 
 ---
 
