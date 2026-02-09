@@ -34,17 +34,13 @@ class GeminiProvider:
             self.current_key_index = 0
             self._configure_client()
 
-        # all stable free-tier models - fastest first
+        # available models - ordered by speed/capability
         self.models = [
-            "gemini-2.5-flash",           
-            "gemini-2.5-pro",             
-            "gemini-2.0-flash",           
-            "gemini-1.5-flash-002",       
-            "gemini-1.5-flash",           
-            "gemini-1.5-flash-8b",        
-            "gemini-1.5-pro-002",         
-            "gemini-1.5-pro",             
-            "gemini-pro",                
+            "gemini-2.5-flash",           # primary - fastest 2.5
+            "gemini-2.0-flash",           # fallback - reliable
+            "gemini-2.0-flash-lite",      # lightweight fallback
+            "gemini-2.5-flash-preview-05-20",  # preview version
+            "gemini-2.5-pro-preview-05-06",    # pro preview
         ]
 
     def _configure_client(self):
@@ -102,8 +98,8 @@ class GeminiProvider:
                 else:
                     continue  # try next model on any error
         
-        logger.error(f"all models failed: {errors[:3]}")
-        return {"error": "all models failed", "details": errors[:3]}
+        logger.error(f"all {len(errors)} models failed")
+        return {"error": "all models failed", "details": errors}
 
     def analyze_company(self, company_name: str, layer1_data: Dict[str, Any], reputation_data: list) -> Dict[str, Any]:
         """ai analysis of company legitimacy."""
