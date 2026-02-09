@@ -46,14 +46,13 @@ This guide documents the core endpoints for the Company Legitimacy Pipeline.
 #### Verification Flow
 | Phase | Checks | Timing |
 |-------|--------|--------|
-| **Mandatory (parallel)** | Registry lookup, HR verification, Email domain, AI analysis | Before response (~5s) |
-| **Optional (background)** | LinkedIn, Website, Address verification | After response |
+| **Mandatory (Fast)** | Registry lookup, Email domain check, AI analysis | Before response (~3-5s) |
+| **Optional (Background)** | HR Name (Web Search), LinkedIn, Website, Address | After response |
 | **DB Update** | Final score saved | **After** background checks complete |
 
-> **Important for Frontend:**
-> The API returns an initial trust score based on mandatory checks. The final score (including LinkedIn/Website verification) is updated in the database asynchronously. 
-> - If you need the *absolute final* score, poll the `GET /verification/history` endpoint after ~10-20 seconds.
-> - For most cases, the initial score (Registry + HR + AI) is sufficient for immediate decision making.
+> **Important:**
+> The initial response relies on **Registry + Email Domain** only.
+> **HR Name Verification** (`hr_verified`) will initially be `false` and updated later by the background process.
 
 - **Input (JSON)**:
   ```json
