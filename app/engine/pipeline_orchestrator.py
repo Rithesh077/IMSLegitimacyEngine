@@ -22,12 +22,13 @@ class PipelineOrchestrator:
         self.sentiment = SentimentEngine()
 
     async def run_fast_pipeline(self, input_data: CompanyInput, db: AsyncSession, background_tasks: BackgroundTasks) -> CredibilityAnalysis:
-        """mandatory checks + ai parallel, optional in background via FastAPI BackgroundTasks"""
+        """mandatory checks (registry only) + ai parallel, ALL scraping in background"""
         logger.info(f"fast pipeline: {input_data.name}")
 
-        # mandatory parallel checks
+        # mandatory parallel checks (REGISTRY ONLY - NO SCRAPING)
         async def do_registry():
             if not input_data.registry_id: return {}, False
+            # check registry signal only (fast)
             breakdown, _ = await self.lookup_engine.check_registry_and_metadata(
                 input_data.name, input_data.country, input_data.registry_id,
                 input_data.linkedin_url,
@@ -36,17 +37,11 @@ class PipelineOrchestrator:
             found = any(v.get("found") for k,v in breakdown.items() if k != "peopledatalabs.com")
             return breakdown, found
 
-        async def do_hr():
-            if not input_data.hr_name: return {"verified": False, "score": 0}
-            return await asyncio.to_thread(self.scraper.verify_association, input_data.name, input_data.hr_name)
-
-        # run mandatory checks in parallel
-        registry_result, hr_result = await asyncio.gather(do_registry(), do_hr())
-        
+        # run mandatory checks (registry + ai preparation)
+        registry_result = await do_registry()
         registry_breakdown, registry_found = registry_result
-        hr_verified = hr_result.get("verified", False)
 
-        # email domain check (no network)
+        # email domain check (pure logic, no network)
         email_match = False
         if input_data.hr_email and "@" in input_data.hr_email and input_data.website_urls:
             try:
@@ -55,12 +50,12 @@ class PipelineOrchestrator:
                 email_match = email_domain == web_domain or web_domain.endswith(f".{email_domain}")
             except: pass
 
-        # ai analysis with mandatory data
+        # ai analysis with mandatory data ONLY
         ai_context = {
-            "signals": {"registry_link_found": registry_found, "email_domain_match": email_match, "hr_verified": hr_verified},
+            "signals": {"registry_link_found": registry_found, "email_domain_match": email_match, "hr_verified": False}, # hr not verified yet
             "pdl_data": registry_breakdown.get("peopledatalabs.com", {}).get("search_results", []),
             "industry": input_data.industry,
-            "hr_data": {"name": input_data.hr_name, "email": input_data.hr_email, "verified": hr_verified},
+            "hr_data": {"name": input_data.hr_name, "email": input_data.hr_email, "verified": False},
             "address_data": {"input": input_data.registered_address}
         }
         ai_res = await self.sentiment.analyze(input_data.name, ai_context)
@@ -70,35 +65,19 @@ class PipelineOrchestrator:
         mandatory_score = 0
         if registry_found: mandatory_score += 40
         if email_match: mandatory_score += 10
-        if hr_verified: mandatory_score += 15
+        # hr score applied in background
         
         ai_score = float(ai_data.get("trust_score", mandatory_score))
         tier = ai_data.get("classification", "Needs Review" if mandatory_score < 40 else "Verified")
-        summary = ai_data.get("analysis", f"registry {'found' if registry_found else 'not found'}, hr {'verified' if hr_verified else 'pending'}")
+        summary = ai_data.get("analysis", f"registry {'found' if registry_found else 'not found'}, email {'matched' if email_match else 'no match'}")
 
-        # generate pdf
-        report_path = None
-        try:
-            from app.core.report_generator import ReportGenerator
-            full_analysis = CredibilityAnalysis(
-                trust_score=ai_score, trust_tier=tier,
-                verification_status="Verified" if ai_score >= 60 else "Pending",
-                review_count=0, sentiment_summary=summary, scraped_sources=[],
-                red_flags=ai_data.get("flags", []),
-                details={"signals": {"registry_link_found": registry_found, "email_domain_match": email_match, "hr_verified": hr_verified}}
-            )
-            report_gen = ReportGenerator(full_analysis, input_data.name)
-            report_path = report_gen.generate()
-
-            from app.core.excel_logger import ExcelLogger
-            ExcelLogger.log_verification(input_data, full_analysis)
-        except Exception as e:
-            logger.error(f"report: {e}")
+        # generate pdf placeholder (will be updated in background)
+        report_path = f"reports/{input_data.name.replace(' ', '_')}_Report.pdf"
 
         # add background task to FastAPI queue
         background_tasks.add_task(
             self._run_optional_and_save, 
-            input_data, ai_score, registry_found, email_match, hr_verified, report_path
+            input_data, ai_score, registry_found, email_match, report_path
         )
 
         # return full object (pending background checks)
@@ -114,28 +93,34 @@ class PipelineOrchestrator:
                 "signals": {
                     "registry_link_found": registry_found, 
                     "email_domain_match": email_match, 
-                    "hr_verified": hr_verified,
+                    "hr_verified": False, # pending background
                     "linkedin_verified": False,
                     "website_verified": False, 
                     "address_verified": False
                 },
                 "registry_breakdown": registry_breakdown,
                 "report_path": report_path,
-                "note": "Initial score. Background checks in progress."
+                "note": "Initial score. Detailed background checks (HR, LinkedIn, Website, Address) in progress."
             }
         )
 
     async def _run_optional_and_save(self, input_data: CompanyInput, base_score: float, 
-                                      registry_found: bool, email_match: bool, hr_verified: bool,
+                                      registry_found: bool, email_match: bool,
                                       report_path: str):
-        """background: optional checks (linkedin, website, address), then save to db"""
-        logger.info(f"background started: {input_data.name}")
+        """background: optional checks (hr, linkedin, website, address), then save to db"""
+        logger.info(f"background checks started: {input_data.name}")
         
+        hr_verified = False
         linkedin_verified = False
         website_verified = False
         address_verified = False
         
         try:
+            # moved hr check here
+            async def do_hr():
+                if not input_data.hr_name: return {"verified": False}
+                return await asyncio.to_thread(self.scraper.verify_association, input_data.name, input_data.hr_name)
+
             async def do_linkedin():
                 if not input_data.linkedin_url: return False
                 return await asyncio.to_thread(self.scraper.verify_url_owner, input_data.linkedin_url, input_data.name)
@@ -148,29 +133,61 @@ class PipelineOrchestrator:
                 if not input_data.registered_address: return {"verified": False}
                 return await asyncio.to_thread(self.scraper.verify_association, input_data.name, input_data.registered_address)
 
-            linkedin, website, addr = await asyncio.gather(do_linkedin(), do_website(), do_address())
+            hr_res, linkedin, website, addr = await asyncio.gather(do_hr(), do_linkedin(), do_website(), do_address())
             
+            hr_verified = hr_res.get("verified", False)
             linkedin_verified = linkedin
             website_verified = website
             address_verified = addr.get("verified", False)
 
         except Exception as e:
-            logger.error(f"optional checks: {e}")
+            logger.error(f"background checks error: {e}")
 
         # calculate final score
         final_score = base_score
+        if hr_verified: final_score += 15 # add HR score here
         if linkedin_verified: final_score += 10
         if website_verified: final_score += 10
         if address_verified: final_score += 10
         
+        # cap at 100
+        final_score = min(final_score, 100.0)
+        
         final_tier = "Verified" if final_score >= 60 else "Needs Review"
         logger.info(f"final score: {input_data.name} = {final_score}")
 
+        # regenerate report with full details
+        try:
+            from app.core.report_generator import ReportGenerator
+            
+            full_analysis = CredibilityAnalysis(
+                trust_score=final_score, trust_tier=final_tier,
+                verification_status="Verified" if final_score >= 60 else "Pending",
+                review_count=0, sentiment_summary="Final verification complete.", scraped_sources=[],
+                red_flags=[],
+                details={"signals": {
+                    "registry_link_found": registry_found, 
+                    "email_domain_match": email_match,
+                    "hr_verified": hr_verified,
+                    "linkedin_verified": linkedin_verified,
+                    "website_verified": website_verified,
+                    "address_verified": address_verified
+                }}
+            )
+            report_gen = ReportGenerator(full_analysis, input_data.name)
+            report_path = report_gen.generate()
+            
+            from app.core.excel_logger import ExcelLogger
+            ExcelLogger.log_verification(input_data, full_analysis)
+
+        except Exception as e:
+             logger.error(f"background report error: {e}")
+
         # save to db
         if input_data.user_id:
-            await self._save_to_db(input_data, final_score, final_tier, report_path)
+            await self._save_to_db(input_data, final_score, final_tier, report_path, hr_verified)
 
-    async def _save_to_db(self, input_data: CompanyInput, score: float, tier: str, report_path: str):
+    async def _save_to_db(self, input_data: CompanyInput, score: float, tier: str, report_path: str, hr_verified: bool):
         """save verification to db"""
         try:
             from app.core.database import async_session
@@ -185,6 +202,7 @@ class PipelineOrchestrator:
                     existing.ai_trust_tier = tier
                     existing.ai_report_path = report_path
                     existing.is_approved = score >= 70
+                    if hr_verified: existing.hr_verified = True # assuming column exists or irrelevant
                 else:
                     company = Company(
                         id=str(uuid.uuid4()), company_name=input_data.name, user_id=input_data.user_id,

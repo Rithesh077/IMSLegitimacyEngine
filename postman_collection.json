@@ -93,7 +93,7 @@
                         "verify"
                     ]
                 },
-                "description": "Fast verification (~5s). Returns full `CredibilityAnalysis` object. Note: `scraped_sources` and some `details` (LinkedIn/Website) may be empty initially and updated in DB later."
+                "description": "Fast verification (~3s). Returns full `CredibilityAnalysis` object. Initial score based on Registry + Email. HR/LinkedIn/Website checks run in background and update DB."
             },
             "response": []
         },
