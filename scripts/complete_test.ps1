@@ -98,34 +98,46 @@ if (Test-Endpoint "Company Verify" $r "status") { $passed++ } else { $failed++ }
 
 # 8. Faculty Allocation - Recommend
 Write-Host "`n8. FACULTY ALLOCATION RECOMMEND" -ForegroundColor Yellow
+$jsonFile = "$env:TEMP\alloc_full.json"
+@'
+{"student": {"id": "S001", "name": "Test Student", "internship_role": "Machine Learning Engineer", "internship_description": "Building ML models for predictions", "skills": ["Python", "TensorFlow", "PyTorch"]}, "available_faculty": [{"id": "F001", "name": "Dr. Ramesh Kumar", "department": "Computer Science", "expertise": ["Machine Learning", "Deep Learning", "Neural Networks"], "current_load": 3, "max_capacity": 8}, {"id": "F002", "name": "Dr. Priya Singh", "department": "Data Science", "expertise": ["Data Mining", "Statistics"], "current_load": 5, "max_capacity": 6}, {"id": "F003", "name": "Dr. Vijay Sharma", "department": "IT", "expertise": ["Web Development", "JavaScript"], "current_load": 2, "max_capacity": 7}]}
+'@ | Out-File -FilePath $jsonFile -Encoding utf8 -NoNewline
+
 $start = Get-Date
-$body = '{"student": {"id": "S001", "name": "Test Student", "internship_role": "Machine Learning Engineer", "internship_description": "Building ML models for predictions", "skills": ["Python", "TensorFlow", "PyTorch"]}, "available_faculty": [{"id": "F001", "name": "Dr. Ramesh Kumar", "expertise": "Machine Learning, Deep Learning, Neural Networks", "current_load": 3, "max_capacity": 8}, {"id": "F002", "name": "Dr. Priya Singh", "expertise": "Data Mining, Statistics", "current_load": 5, "max_capacity": 6}, {"id": "F003", "name": "Dr. Vijay Sharma", "expertise": "Web Development, JavaScript", "current_load": 2, "max_capacity": 7}]}'
 $r = curl.exe -s -X POST "$baseUrl/verification/allocation/recommend" `
     -H "Legitimacy-engine-key: $apiKey" `
     -H "Content-Type: application/json" `
-    -d $body
+    --data-binary "@$jsonFile"
 $time = ((Get-Date) - $start).TotalSeconds
 Write-Host "Time: $time`s" -ForegroundColor Cyan
-Write-Host $r
+Write-Host ($r | Select-Object -First 200)
 if (Test-Endpoint "Allocation Recommend" $r "faculty") { $passed++ } else { $failed++ }
 
 # 9. Validate Manual Pair - Good Match
 Write-Host "`n9. VALIDATE PAIR (Good Match)" -ForegroundColor Yellow
-$body = '{"student": {"internship_role": "Data Scientist", "internship_description": "Building ML models"}, "faculty": {"expertise": "Machine Learning, Data Science"}}'
+$jsonFile = "$env:TEMP\pair_good.json"
+@'
+{"student": {"internship_role": "Data Scientist", "internship_description": "Building ML models"}, "faculty": {"expertise": ["Machine Learning", "Data Science"]}}
+'@ | Out-File -FilePath $jsonFile -Encoding utf8 -NoNewline
+
 $r = curl.exe -s -X POST "$baseUrl/verification/allocation/validate-pair" `
     -H "Legitimacy-engine-key: $apiKey" `
     -H "Content-Type: application/json" `
-    -d $body
+    --data-binary "@$jsonFile"
 Write-Host $r
 if (Test-Endpoint "Good Pair" $r "valid") { $passed++ } else { $failed++ }
 
 # 10. Validate Manual Pair - Bad Match
 Write-Host "`n10. VALIDATE PAIR (Bad Match)" -ForegroundColor Yellow
-$body = '{"student": {"internship_role": "Mechanical Design Engineer", "internship_description": "CAD modeling"}, "faculty": {"expertise": "Web Development, JavaScript"}}'
+$jsonFile = "$env:TEMP\pair_bad.json"
+@'
+{"student": {"internship_role": "Mechanical Design Engineer", "internship_description": "CAD modeling"}, "faculty": {"expertise": ["Web Development", "JavaScript"]}}
+'@ | Out-File -FilePath $jsonFile -Encoding utf8 -NoNewline
+
 $r = curl.exe -s -X POST "$baseUrl/verification/allocation/validate-pair" `
     -H "Legitimacy-engine-key: $apiKey" `
     -H "Content-Type: application/json" `
-    -d $body
+    --data-binary "@$jsonFile"
 Write-Host $r
 if ($r -match "valid") { $passed++; Write-Host "[PASS] Bad Pair Check" -ForegroundColor Green } else { $failed++ }
 
