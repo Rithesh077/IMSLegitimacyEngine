@@ -2,7 +2,7 @@
 # Uses temp files for JSON with correct schema
 
 $apiKey = "n9MglUvVhYaF4jhq5I5QGaBQlCDFjwPZdU6xE9_fu6U"
-$baseUrl = "http://localhost:8001"
+$baseUrl = "https://imslegitimacyengine.onrender.com"
 $passed = 0
 $failed = 0
 

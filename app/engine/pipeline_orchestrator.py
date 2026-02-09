@@ -6,13 +6,12 @@ from app.models.company import Company
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from urllib.parse import urlparse
+from fastapi import BackgroundTasks
 import logging
 import asyncio
 import uuid
 
 logger = logging.getLogger(__name__)
-
-_background_tasks = set()
 
 class PipelineOrchestrator:
     """verification: mandatory parallel + optional background"""
@@ -22,8 +21,8 @@ class PipelineOrchestrator:
         self.scraper = WebScraper()
         self.sentiment = SentimentEngine()
 
-    async def run_fast_pipeline(self, input_data: CompanyInput, db: AsyncSession = None) -> CredibilityAnalysis:
-        """mandatory checks + ai parallel, optional in background. returns full object."""
+    async def run_fast_pipeline(self, input_data: CompanyInput, db: AsyncSession, background_tasks: BackgroundTasks) -> CredibilityAnalysis:
+        """mandatory checks + ai parallel, optional in background via FastAPI BackgroundTasks"""
         logger.info(f"fast pipeline: {input_data.name}")
 
         # mandatory parallel checks
@@ -96,14 +95,13 @@ class PipelineOrchestrator:
         except Exception as e:
             logger.error(f"report: {e}")
 
-        # spawn background for optional checks + db save
-        task = asyncio.create_task(
-            self._run_optional_and_save(input_data, ai_score, registry_found, email_match, hr_verified, report_path)
+        # add background task to FastAPI queue
+        background_tasks.add_task(
+            self._run_optional_and_save, 
+            input_data, ai_score, registry_found, email_match, hr_verified, report_path
         )
-        _background_tasks.add(task)
-        task.add_done_callback(_background_tasks.discard)
 
-        # RETURN FULL OBJECT (partial data)
+        # return full object (pending background checks)
         return CredibilityAnalysis(
             trust_score=ai_score,
             trust_tier=tier,
@@ -117,9 +115,9 @@ class PipelineOrchestrator:
                     "registry_link_found": registry_found, 
                     "email_domain_match": email_match, 
                     "hr_verified": hr_verified,
-                    "linkedin_verified": False, # pending background
-                    "website_verified": False, # pending background
-                    "address_verified": False # pending background
+                    "linkedin_verified": False,
+                    "website_verified": False, 
+                    "address_verified": False
                 },
                 "registry_breakdown": registry_breakdown,
                 "report_path": report_path,
@@ -131,7 +129,7 @@ class PipelineOrchestrator:
                                       registry_found: bool, email_match: bool, hr_verified: bool,
                                       report_path: str):
         """background: optional checks (linkedin, website, address), then save to db"""
-        logger.info(f"background: {input_data.name}")
+        logger.info(f"background started: {input_data.name}")
         
         linkedin_verified = False
         website_verified = False
@@ -166,7 +164,7 @@ class PipelineOrchestrator:
         if address_verified: final_score += 10
         
         final_tier = "Verified" if final_score >= 60 else "Needs Review"
-        logger.info(f"final: {input_data.name} = {final_score}")
+        logger.info(f"final score: {input_data.name} = {final_score}")
 
         # save to db
         if input_data.user_id:
@@ -200,10 +198,10 @@ class PipelineOrchestrator:
                     db.add(company)
 
                 await db.commit()
-                logger.info(f"db: {input_data.name} saved")
+                logger.info(f"db saved: {input_data.name}")
         except Exception as e:
             logger.error(f"db: {e}")
 
-    async def run_pipeline(self, input_data: CompanyInput, db: AsyncSession = None) -> CredibilityAnalysis:
+    async def run_pipeline(self, input_data: CompanyInput, db: AsyncSession, background_tasks: BackgroundTasks) -> CredibilityAnalysis:
         """legacy wrapper"""
-        return await self.run_fast_pipeline(input_data, db)
+        return await self.run_fast_pipeline(input_data, db, background_tasks)
