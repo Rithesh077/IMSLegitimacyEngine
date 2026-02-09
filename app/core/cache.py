@@ -55,7 +55,7 @@ def cache_set(key: str, value: dict, ttl: int = 86400) -> None:
 
 def cache_clear() -> None:
     global _memory_cache
-    _memory_cache = {}
+    _memory_cache.clear()
     r = _get_redis()
     if r:
         try:

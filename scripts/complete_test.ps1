@@ -125,7 +125,7 @@ $r = curl.exe -s -X POST "$baseUrl/verification/allocation/validate-pair" `
     -H "Content-Type: application/json" `
     --data-binary "@$jsonFile"
 Write-Host $r
-if (Test-Endpoint "Good Pair" $r "valid") { $passed++ } else { $failed++ }
+if (Test-Endpoint "Good Pair" $r "is_suitable") { $passed++ } else { $failed++ }
 
 # 10. Validate Manual Pair - Bad Match
 Write-Host "`n10. VALIDATE PAIR (Bad Match)" -ForegroundColor Yellow
@@ -139,7 +139,7 @@ $r = curl.exe -s -X POST "$baseUrl/verification/allocation/validate-pair" `
     -H "Content-Type: application/json" `
     --data-binary "@$jsonFile"
 Write-Host $r
-if ($r -match "valid") { $passed++; Write-Host "[PASS] Bad Pair Check" -ForegroundColor Green } else { $failed++ }
+if ($r -match "is_suitable") { $passed++; Write-Host "[PASS] Bad Pair Check" -ForegroundColor Green } else { $failed++ }
 
 # 11. Get Verification History
 Write-Host "`n11. VERIFICATION HISTORY" -ForegroundColor Yellow

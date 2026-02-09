@@ -1,15 +1,13 @@
 from typing import Optional, Dict, Any, List
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from app.engine.registry_provider import RegistryProvider
 from app.engine.scraper import WebScraper
 
 logger = logging.getLogger(__name__)
 
 class SearchBasedProvider(RegistryProvider):
-    """
-    Base provider implementing search-based verification.
-    """
-    
+    """search-based registry verification"""
     TRUSTED_DOMAINS = []
 
     def __init__(self):
@@ -19,99 +17,56 @@ class SearchBasedProvider(RegistryProvider):
         return None
 
     def check_registry_signal(self, registration_id: str, company_name: str) -> Dict[str, Any]:
-        """
-        verifies company presence across trusted domains using dual-query strategy.
-        returns: { domain: { found: bool, matches: list } }
-        """
+        """verify company via single domain search"""
         results = {}
         clean_id = registration_id.lower().strip()
-        logger.info(f"checking registry: {registration_id}")
-        
-        for domain in self.TRUSTED_DOMAINS:
-            res = {
-                "found": False,
-                "verification_method": None,
-                "search_results": []
-            }
-            
-            # 1. strict query (name + id)
-            q1 = f'{domain} {company_name} {registration_id}'
-            found1, data1 = self._check_query(q1, domain, company_name, clean_id, strict_id=True)
-            res["search_results"].extend(data1)
-            
-            if found1:
-                res["found"] = True
-                res["verification_method"] = "strict_id"
+        logger.info(f"registry check: {registration_id}")
 
-            # 2. broad query (name only)
-            # running broad search to capture all context even if strict failed
-            q2 = f'{domain} {company_name}'
-            found2, data2 = self._check_query(q2, domain, company_name, clean_id, strict_id=False)
-            res["search_results"].extend(data2)
-            
-            if not res["found"] and found2:
+        def check_domain(domain: str) -> tuple[str, Dict]:
+            res = {"found": False, "verification_method": None, "search_results": []}
+            q = f'{domain} {company_name} {registration_id}'
+            found, data = self._check_query(q, domain, company_name, clean_id)
+            res["search_results"].extend(data)
+            if found:
                 res["found"] = True
                 res["verification_method"] = "name_match"
-            
+            return domain, res
+
+        # single domain = no need for threadpool, just run directly
+        if len(self.TRUSTED_DOMAINS) == 1:
+            domain, res = check_domain(self.TRUSTED_DOMAINS[0])
             results[domain] = res
-            
+        else:
+            with ThreadPoolExecutor(max_workers=len(self.TRUSTED_DOMAINS)) as ex:
+                for future in [ex.submit(check_domain, d) for d in self.TRUSTED_DOMAINS]:
+                    domain, res = future.result()
+                    results[domain] = res
         return results
 
-    def _check_query(self, query: str, domain: str, expected_name: str, expected_id: str, strict_id: bool) -> tuple[bool, List[Dict]]:
-        """
-        Parses search results to confirm a match.
-        Returns: (is_match, list_of_results)
-        """
-        results = self.scraper.search_web(query, num_results=5) # Increased to 5 per user req
-        is_match = False
-        
+    def _check_query(self, query: str, domain: str, name: str, reg_id: str) -> tuple[bool, List[Dict]]:
+        """parse search results for match"""
+        results = self.scraper.search_web(query, num_results=3)
         for res in results:
-            url = res.get('link', '')
-            title = res.get('title', '').lower()
-            snippet = res.get('snippet', '').lower()
-            
-            if domain in url:
-                name_score = self.scraper.calculate_fuzzy_match(expected_name, res.get('title', ''))
-                
-                if strict_id:
-                    # Enforce ID presence + Moderate Name Match
-                    id_match = expected_id in title or expected_id in snippet
-                    if id_match and name_score > 60:
-                        logger.info(f"  -> Match Confirmed: ID present, Name Score: {name_score}")
-                        is_match = True
-                else:
-                    # Stricter Name Match required if ID is absent
-                    if name_score > 70:
-                        logger.info(f"  -> Match Confirmed: Name Score: {name_score}")
-                        is_match = True
-                        
-        return is_match, results
-        
+            if domain in res.get('link', ''):
+                score = self.scraper.calculate_fuzzy_match(name, res.get('title', ''))
+                if score > 70:
+                    logger.info(f"match: {domain} (score={score})")
+                    return True, results
+        return False, results
+
     def verify_by_name(self, name: str) -> List[Dict[str, Any]]:
         return []
 
 class ZaubaProvider(SearchBasedProvider):
-    """Trusted sources for Indian entities."""
-    TRUSTED_DOMAINS = [
-        "zaubacorp.com", 
-        "tofler.in", 
-        "mca.gov.in", 
-        "thecompanycheck.com", 
-        "economictimes.indiatimes.com",
-        "instafinancials.com"
-    ]
+    """indian registry - zaubacorp only"""
+    TRUSTED_DOMAINS = ["zaubacorp.com"]
 
     def verify_by_id(self, registration_id: str, company_name: str = "") -> Optional[Dict[str, Any]]:
         return super().verify_by_id(registration_id, company_name)
 
-
 class OpenCorporatesProvider(SearchBasedProvider):
-    """Trusted global sources."""
-    TRUSTED_DOMAINS = [
-        "opencorporates.com",
-        "dnb.com", 
-        "sec.gov" 
-    ]
-    
+    """global registry - opencorporates only"""
+    TRUSTED_DOMAINS = ["opencorporates.com"]
+
     def verify_by_id(self, registration_id: str, company_name: str = "") -> Optional[Dict[str, Any]]:
         return super().verify_by_id(registration_id, company_name)
