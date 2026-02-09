@@ -6,6 +6,7 @@ class FacultyProfile(BaseModel):
     name: str
     department: str
     expertise: List[str]
+    interests: List[str] = []  # optional research interests
     current_load: int = 0
     max_capacity: int = 10
 
