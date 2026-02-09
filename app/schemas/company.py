@@ -13,10 +13,9 @@ class CompanyInput(BaseModel):
     document_content: Optional[str] = None
     manual_verification: bool = False
     
-    # Optional Signals
     linkedin_url: Optional[str] = None
     website_urls: Optional[List[str]] = Field(default_factory=list)
-    user_id: Optional[str] = None # Required for DB persistence
+    user_id: Optional[str] = None
 
 class VerificationResult(BaseModel):
     verified: bool
@@ -32,3 +31,5 @@ class CredibilityAnalysis(BaseModel):
     scraped_sources: List[str]
     red_flags: List[str]
     details: Dict[str, Any]
+
+

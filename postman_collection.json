@@ -2,7 +2,7 @@
     "info": {
         "_postman_id": "legitimacy-engine-v1",
         "name": "Legitimacy Engine API",
-        "description": "API collection for the Company Legitimacy Pipeline. Includes endpoints for offer parsing, company verification, and faculty allocation.",
+        "description": "Company Legitimacy API. Verification: ~5s response (mandatory: registry+HR+AI parallel, optional: LinkedIn/Website/Address in background).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "item": [
@@ -64,7 +64,7 @@
             "response": []
         },
         {
-            "name": "3. Verify Company",
+            "name": "3. Verify Company (Fast)",
             "request": {
                 "method": "POST",
                 "header": [
@@ -92,7 +92,8 @@
                         "verification",
                         "verify"
                     ]
-                }
+                },
+                "description": "Fast verification (~5s). Returns full `CredibilityAnalysis` object. Note: `scraped_sources` and some `details` (LinkedIn/Website) may be empty initially and updated in DB later."
             },
             "response": []
         },
